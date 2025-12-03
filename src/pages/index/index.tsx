@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
 import { generateImage, hasApiKey } from '../../services/api'
 import './index.scss'
@@ -20,10 +20,15 @@ export default function Index() {
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
 
-  // 检查 API Key 配置状态
+  // 检查 API Key 配置状态 - 页面首次加载时
   useEffect(() => {
     setHasKey(hasApiKey())
   }, [])
+
+  // 页面显示时重新检查 API Key 状态（从设置页返回时触发）
+  useDidShow(() => {
+    setHasKey(hasApiKey())
+  })
 
   // 跳转到设置页面
   const goToSettings = () => {

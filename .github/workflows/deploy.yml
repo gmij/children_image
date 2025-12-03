@@ -57,8 +57,9 @@ jobs:
         with:
           path: './dist/h5'
 
-  # 部署任务
+  # 部署任务 - 仅在 main 分支运行
   deploy:
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

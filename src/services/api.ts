@@ -193,7 +193,19 @@ export async function generateImage(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '生成失败，请重试'
+    let errorMessage = '生成失败，请重试'
+    if (error instanceof Error) {
+      // 提供更友好的错误信息
+      if (error.message === 'Failed to fetch') {
+        errorMessage = '网络请求失败，请检查网络连接或 API Key 是否正确'
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = '网络错误，请检查网络连接'
+      } else if (error.message.includes('CORS')) {
+        errorMessage = '跨域请求被阻止，请联系管理员'
+      } else {
+        errorMessage = error.message
+      }
+    }
     callbacks.onError?.(errorMessage)
   }
 }
@@ -274,7 +286,19 @@ export async function generateImageNonStream(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '生成失败，请重试'
+    let errorMessage = '生成失败，请重试'
+    if (error instanceof Error) {
+      // 提供更友好的错误信息
+      if (error.message === 'Failed to fetch') {
+        errorMessage = '网络请求失败，请检查网络连接或 API Key 是否正确'
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = '网络错误，请检查网络连接'
+      } else if (error.message.includes('CORS')) {
+        errorMessage = '跨域请求被阻止，请联系管理员'
+      } else {
+        errorMessage = error.message
+      }
+    }
     callbacks.onError?.(errorMessage)
   }
 }
