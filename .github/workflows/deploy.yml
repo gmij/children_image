@@ -4,9 +4,8 @@
 name: Deploy to GitHub Pages
 
 on:
-  # 推送到 main 分支时触发
+  # 推送到任意分支时触发
   push:
-    branches: ["main"]
   # 允许手动触发
   workflow_dispatch:
 
