@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Button } from '@tarojs/components'
+import { View, Text, Textarea, Button } from '@tarojs/components'
 import { getApiKey, setApiKey } from '../../services/api'
 import './index.scss'
 
@@ -75,9 +75,8 @@ export default function Settings() {
         </View>
 
         <View className="input-wrapper">
-          <Input
+          <Textarea
             className="api-input"
-            type={showKey ? 'text' : 'safe-password'}
             placeholder="请输入您的 API Key"
             value={apiKeyValue}
             onInput={(e) => setApiKeyValue(e.detail.value)}
