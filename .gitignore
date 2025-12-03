@@ -21,6 +21,7 @@ npm-debug.log*
 # Cache
 .cache/
 .taro-cache/
+.swc/
 
 # Environment
 .env

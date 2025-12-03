@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Canvas, Text } from '@tarojs/components'
+import type { ITouchEvent } from '@tarojs/components'
 import './index.scss'
 
 // 预设颜色列表
@@ -18,6 +19,9 @@ const COLORS = [
 
 // 画笔大小选项
 const BRUSH_SIZES = [4, 8, 12, 20, 30]
+
+// 画布最大尺寸（用于初始化填充背景）
+const MAX_CANVAS_SIZE = 10000
 
 interface Point {
   x: number
@@ -39,9 +43,9 @@ export default function Index() {
     const ctx = Taro.createCanvasContext('drawCanvas')
     canvasContext.current = ctx
     
-    // 设置白色背景
+    // 设置白色背景（使用足够大的尺寸覆盖整个画布）
     ctx.setFillStyle('#FFFFFF')
-    ctx.fillRect(0, 0, 9999, 9999)
+    ctx.fillRect(0, 0, MAX_CANVAS_SIZE, MAX_CANVAS_SIZE)
     ctx.draw()
   }, [])
 
@@ -51,7 +55,7 @@ export default function Index() {
   })
 
   // 获取触摸点坐标
-  const getTouchPoint = (e: any): Point => {
+  const getTouchPoint = (e: ITouchEvent): Point => {
     const touch = e.touches[0] || e.changedTouches[0]
     return {
       x: touch.x,
@@ -60,7 +64,7 @@ export default function Index() {
   }
 
   // 开始绘制
-  const handleTouchStart = (e: any) => {
+  const handleTouchStart = (e: ITouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -85,7 +89,7 @@ export default function Index() {
   }
 
   // 绘制中
-  const handleTouchMove = (e: any) => {
+  const handleTouchMove = (e: ITouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -143,15 +147,22 @@ export default function Index() {
           fail: (err) => {
             // H5 环境下无法直接保存到相册，提供下载
             if (process.env.TARO_ENV === 'h5') {
-              // 在 H5 中创建下载链接
-              const link = document.createElement('a')
-              link.href = res.tempFilePath
-              link.download = `drawing_${Date.now()}.png`
-              link.click()
-              Taro.showToast({
-                title: '已下载！',
-                icon: 'success'
-              })
+              try {
+                // 在 H5 中创建下载链接
+                const link = document.createElement('a')
+                link.href = res.tempFilePath
+                link.download = `drawing_${Date.now()}.png`
+                link.click()
+                Taro.showToast({
+                  title: '已下载！',
+                  icon: 'success'
+                })
+              } catch {
+                Taro.showToast({
+                  title: '下载失败',
+                  icon: 'none'
+                })
+              }
             } else {
               Taro.showToast({
                 title: '保存失败',
