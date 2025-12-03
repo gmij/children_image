@@ -58,6 +58,26 @@ export function hasApiKey(): boolean {
 }
 
 /**
+ * 获取用户友好的错误信息
+ */
+function getFriendlyErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return '生成失败，请重试'
+  }
+  
+  // 提供更友好的错误信息
+  if (error.message === 'Failed to fetch') {
+    return '网络请求失败，请检查网络连接或 API Key 是否正确'
+  } else if (error.message.includes('NetworkError')) {
+    return '网络错误，请检查网络连接'
+  } else if (error.message.includes('CORS')) {
+    return '跨域请求被阻止，请联系管理员'
+  }
+  
+  return error.message
+}
+
+/**
  * 生成手抄报提示词增强
  */
 function enhancePrompt(userPrompt: string): string {
@@ -193,20 +213,7 @@ export async function generateImage(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    let errorMessage = '生成失败，请重试'
-    if (error instanceof Error) {
-      // 提供更友好的错误信息
-      if (error.message === 'Failed to fetch') {
-        errorMessage = '网络请求失败，请检查网络连接或 API Key 是否正确'
-      } else if (error.message.includes('NetworkError')) {
-        errorMessage = '网络错误，请检查网络连接'
-      } else if (error.message.includes('CORS')) {
-        errorMessage = '跨域请求被阻止，请联系管理员'
-      } else {
-        errorMessage = error.message
-      }
-    }
-    callbacks.onError?.(errorMessage)
+    callbacks.onError?.(getFriendlyErrorMessage(error))
   }
 }
 
@@ -286,19 +293,6 @@ export async function generateImageNonStream(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    let errorMessage = '生成失败，请重试'
-    if (error instanceof Error) {
-      // 提供更友好的错误信息
-      if (error.message === 'Failed to fetch') {
-        errorMessage = '网络请求失败，请检查网络连接或 API Key 是否正确'
-      } else if (error.message.includes('NetworkError')) {
-        errorMessage = '网络错误，请检查网络连接'
-      } else if (error.message.includes('CORS')) {
-        errorMessage = '跨域请求被阻止，请联系管理员'
-      } else {
-        errorMessage = error.message
-      }
-    }
-    callbacks.onError?.(errorMessage)
+    callbacks.onError?.(getFriendlyErrorMessage(error))
   }
 }
