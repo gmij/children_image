@@ -90,6 +90,7 @@ export default function Settings() {
             placeholder="请输入您的 API Key"
             value={maskedValue}
             onInput={handleInput}
+            maxlength={5000}
             disabled={!showKey && (apiKeyValue?.length || 0) > 0}
           />
         </View>
