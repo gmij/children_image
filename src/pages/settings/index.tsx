@@ -15,11 +15,13 @@ export default function Settings() {
     }
   }, [])
 
-  const maskedValue = useMemo(() => {
+  // 显示的值：显示模式下显示真实值，隐藏模式下显示 mask
+  const displayValue = useMemo(() => {
     return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
   }, [showKey, apiKeyValue])
 
   const handleInput = useCallback((e) => {
+    // 只有在显示模式下才允许编辑
     if (showKey) {
       setApiKeyValue(e.detail.value)
     }
@@ -88,9 +90,9 @@ export default function Settings() {
           <Textarea
             className="api-input"
             placeholder="请输入您的 API Key"
-            value={maskedValue}
+            value={displayValue}
             onInput={handleInput}
-            maxlength={5000}
+            maxlength={-1}
             disabled={!showKey && (apiKeyValue?.length || 0) > 0}
           />
         </View>
