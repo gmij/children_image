@@ -16,7 +16,7 @@ export default function Settings() {
   }, [])
 
   const maskedValue = useMemo(() => {
-    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue.length)
+    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
   }, [showKey, apiKeyValue])
 
   const handleInput = useCallback((e) => {
@@ -90,7 +90,7 @@ export default function Settings() {
             placeholder="请输入您的 API Key"
             value={maskedValue}
             onInput={handleInput}
-            disabled={!showKey && apiKeyValue.length > 0}
+            disabled={!showKey && (apiKeyValue?.length || 0) > 0}
           />
         </View>
 
