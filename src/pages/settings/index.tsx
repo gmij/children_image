@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Button } from '@tarojs/components'
+import { View, Text, Textarea, Button } from '@tarojs/components'
 import { getApiKey, setApiKey } from '../../services/api'
 import './index.scss'
 
@@ -14,6 +14,16 @@ export default function Settings() {
       setApiKeyValue(savedKey)
     }
   }, [])
+
+  const maskedValue = useMemo(() => {
+    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
+  }, [showKey, apiKeyValue])
+
+  const handleInput = useCallback((e) => {
+    if (showKey) {
+      setApiKeyValue(e.detail.value)
+    }
+  }, [showKey])
 
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
@@ -75,13 +85,12 @@ export default function Settings() {
         </View>
 
         <View className="input-wrapper">
-          <Input
+          <Textarea
             className="api-input"
-            type={showKey ? 'text' : 'safe-password'}
             placeholder="请输入您的 API Key"
-            value={apiKeyValue}
-            onInput={(e) => setApiKeyValue(e.detail.value)}
-            password={!showKey}
+            value={maskedValue}
+            onInput={handleInput}
+            disabled={!showKey && (apiKeyValue?.length || 0) > 0}
           />
         </View>
 
