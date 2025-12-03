@@ -71,7 +71,21 @@ npm run build:weapp
 
 ## GitHub Pages 部署
 
-H5 版本可以直接部署到 GitHub Pages：
+### 自动部署（推荐）
+
+本项目已配置 GitHub Actions 自动部署。只需：
+
+1. 在 GitHub 仓库设置中启用 Pages：
+   - 进入 Settings → Pages
+   - Source 选择 "GitHub Actions"
+
+2. 推送代码到 `main` 分支，Actions 会自动构建并部署
+
+3. 访问 `https://<username>.github.io/<repo-name>/` 查看
+
+### 手动部署
+
+也可以手动构建并部署：
 
 1. 构建 H5 版本
 ```bash
