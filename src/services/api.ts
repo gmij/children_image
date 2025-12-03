@@ -4,7 +4,7 @@
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1beta'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/v1/ai'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
@@ -135,11 +135,11 @@ export async function generateImage(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/models/${MODEL_NAME}:streamGenerateContent?alt=sse`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}/streamGenerateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         contents: [
@@ -152,7 +152,7 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          responseModalities: ['Text', 'Image']
+          response_modalities: ['TEXT', 'IMAGE']
         }
       })
     })
@@ -253,11 +253,11 @@ export async function generateImageNonStream(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/models/${MODEL_NAME}:generateContent`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}/generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         contents: [
@@ -270,7 +270,7 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          responseModalities: ['Text', 'Image']
+          response_modalities: ['TEXT', 'IMAGE']
         }
       })
     })
