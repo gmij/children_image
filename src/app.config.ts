@@ -1,9 +1,12 @@
 export default defineAppConfig({
-  pages: ['pages/index/index'],
+  pages: [
+    'pages/index/index',
+    'pages/settings/index'
+  ],
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#4CAF50',
-    navigationBarTitleText: '儿童画图',
+    navigationBarTitleText: 'AI 手抄报',
     navigationBarTextStyle: 'white'
   }
 })

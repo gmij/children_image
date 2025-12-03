@@ -1,292 +1,247 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Canvas, Text } from '@tarojs/components'
-import type { ITouchEvent } from '@tarojs/components'
+import { View, Text, Textarea, Image, Button } from '@tarojs/components'
+import { generateImage, generateImageNonStream, hasApiKey } from '../../services/api'
 import './index.scss'
 
-// 预设颜色列表
-const COLORS = [
-  '#000000', // 黑色
-  '#FF0000', // 红色
-  '#FF9800', // 橙色
-  '#FFEB3B', // 黄色
-  '#4CAF50', // 绿色
-  '#2196F3', // 蓝色
-  '#9C27B0', // 紫色
-  '#795548', // 棕色
-  '#FFFFFF', // 白色（橡皮擦效果）
+// 示例提示词
+const EXAMPLE_PROMPTS = [
+  '春天来了，花儿开放',
+  '我爱我的家',
+  '小动物们的快乐一天',
+  '保护地球，爱护环境',
+  '中秋节快乐',
 ]
 
-// 画笔大小选项
-const BRUSH_SIZES = [4, 8, 12, 20, 30]
-
-// 画布最大尺寸（用于初始化填充背景）
-const MAX_CANVAS_SIZE = 10000
-
-interface Point {
-  x: number
-  y: number
-}
-
 export default function Index() {
-  const [currentColor, setCurrentColor] = useState('#000000')
-  const [brushSize, setBrushSize] = useState(8)
-  const [isEraser, setIsEraser] = useState(false)
-  const [showSizePanel, setShowSizePanel] = useState(false)
-  
-  const canvasContext = useRef<Taro.CanvasContext | null>(null)
-  const lastPoint = useRef<Point | null>(null)
-  const isDrawing = useRef(false)
+  const [prompt, setPrompt] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedImage, setGeneratedImage] = useState('')
+  const [error, setError] = useState('')
+  const [hasKey, setHasKey] = useState(false)
 
-  // 初始化画布
-  const initCanvas = useCallback(() => {
-    const ctx = Taro.createCanvasContext('drawCanvas')
-    canvasContext.current = ctx
-    
-    // 设置白色背景（使用足够大的尺寸覆盖整个画布）
-    ctx.setFillStyle('#FFFFFF')
-    ctx.fillRect(0, 0, MAX_CANVAS_SIZE, MAX_CANVAS_SIZE)
-    ctx.draw()
+  // 检查 API Key 配置状态
+  useEffect(() => {
+    setHasKey(hasApiKey())
   }, [])
 
-  // 页面加载时初始化画布
-  Taro.useReady(() => {
-    initCanvas()
-  })
+  // 跳转到设置页面
+  const goToSettings = () => {
+    Taro.navigateTo({ url: '/pages/settings/index' })
+  }
 
-  // 获取触摸点坐标
-  const getTouchPoint = (e: ITouchEvent): Point => {
-    const touch = e.touches[0] || e.changedTouches[0]
-    return {
-      x: touch.x,
-      y: touch.y
+  // 生成图片
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      Taro.showToast({
+        title: '请输入提示词',
+        icon: 'none'
+      })
+      return
+    }
+
+    if (!hasApiKey()) {
+      Taro.showModal({
+        title: '提示',
+        content: '请先配置 API Key',
+        confirmText: '去配置',
+        success: (res) => {
+          if (res.confirm) {
+            goToSettings()
+          }
+        }
+      })
+      return
+    }
+
+    setIsGenerating(true)
+    setError('')
+    setGeneratedImage('')
+
+    // 优先尝试流式调用，失败则使用非流式
+    try {
+      await generateImage(prompt, {
+        onStart: () => {
+          console.log('开始生成...')
+        },
+        onProgress: (imageUrl) => {
+          setGeneratedImage(imageUrl)
+        },
+        onComplete: (imageUrl) => {
+          setGeneratedImage(imageUrl)
+          setIsGenerating(false)
+          Taro.showToast({
+            title: '生成成功！',
+            icon: 'success'
+          })
+        },
+        onError: async (err) => {
+          console.log('流式调用失败，尝试非流式:', err)
+          // 尝试非流式调用
+          await generateImageNonStream(prompt, {
+            onComplete: (imageUrl) => {
+              setGeneratedImage(imageUrl)
+              setIsGenerating(false)
+              Taro.showToast({
+                title: '生成成功！',
+                icon: 'success'
+              })
+            },
+            onError: (finalErr) => {
+              setError(finalErr)
+              setIsGenerating(false)
+            }
+          })
+        }
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成失败')
+      setIsGenerating(false)
     }
   }
 
-  // 开始绘制
-  const handleTouchStart = (e: ITouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    const point = getTouchPoint(e)
-    lastPoint.current = point
-    isDrawing.current = true
-
-    const ctx = canvasContext.current
-    if (!ctx) return
-
-    ctx.beginPath()
-    ctx.setStrokeStyle(isEraser ? '#FFFFFF' : currentColor)
-    ctx.setLineWidth(brushSize)
-    ctx.setLineCap('round')
-    ctx.setLineJoin('round')
-    ctx.moveTo(point.x, point.y)
-    
-    // 绘制一个点
-    ctx.lineTo(point.x + 0.1, point.y + 0.1)
-    ctx.stroke()
-    ctx.draw(true)
-  }
-
-  // 绘制中
-  const handleTouchMove = (e: ITouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    if (!isDrawing.current || !lastPoint.current) return
-
-    const point = getTouchPoint(e)
-    const ctx = canvasContext.current
-    if (!ctx) return
-
-    ctx.beginPath()
-    ctx.setStrokeStyle(isEraser ? '#FFFFFF' : currentColor)
-    ctx.setLineWidth(brushSize)
-    ctx.setLineCap('round')
-    ctx.setLineJoin('round')
-    ctx.moveTo(lastPoint.current.x, lastPoint.current.y)
-    ctx.lineTo(point.x, point.y)
-    ctx.stroke()
-    ctx.draw(true)
-
-    lastPoint.current = point
-  }
-
-  // 结束绘制
-  const handleTouchEnd = () => {
-    isDrawing.current = false
-    lastPoint.current = null
-  }
-
-  // 清空画布
-  const handleClear = () => {
-    Taro.showModal({
-      title: '提示',
-      content: '确定要清空画布吗？',
-      success: (res) => {
-        if (res.confirm) {
-          initCanvas()
-        }
-      }
-    })
+  // 使用示例提示词
+  const useExample = (example: string) => {
+    setPrompt(example)
   }
 
   // 保存图片
   const handleSave = () => {
-    Taro.canvasToTempFilePath({
-      canvasId: 'drawCanvas',
-      success: (res) => {
-        Taro.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => {
-            Taro.showToast({
-              title: '保存成功！',
-              icon: 'success'
-            })
-          },
-          fail: (err) => {
-            // H5 环境下无法直接保存到相册，提供下载
-            if (process.env.TARO_ENV === 'h5') {
-              try {
-                // 在 H5 中创建下载链接
-                const link = document.createElement('a')
-                link.href = res.tempFilePath
-                link.download = `drawing_${Date.now()}.png`
-                link.click()
-                Taro.showToast({
-                  title: '已下载！',
-                  icon: 'success'
-                })
-              } catch {
-                Taro.showToast({
-                  title: '下载失败',
-                  icon: 'none'
-                })
-              }
-            } else {
-              Taro.showToast({
-                title: '保存失败',
-                icon: 'none'
-              })
-              console.error('Save failed:', err)
-            }
-          }
-        })
-      },
-      fail: (err) => {
+    if (!generatedImage) return
+
+    if (process.env.TARO_ENV === 'h5') {
+      try {
+        const link = document.createElement('a')
+        link.href = generatedImage
+        link.download = `handwritten_newspaper_${Date.now()}.png`
+        link.click()
         Taro.showToast({
-          title: '生成图片失败',
+          title: '已下载！',
+          icon: 'success'
+        })
+      } catch {
+        Taro.showToast({
+          title: '下载失败',
           icon: 'none'
         })
-        console.error('Canvas to temp file failed:', err)
       }
-    })
-  }
-
-  // 选择颜色
-  const handleColorSelect = (color: string) => {
-    setCurrentColor(color)
-    setIsEraser(false)
-  }
-
-  // 切换橡皮擦
-  const toggleEraser = () => {
-    setIsEraser(!isEraser)
-  }
-
-  // 选择画笔大小
-  const handleSizeSelect = (size: number) => {
-    setBrushSize(size)
-    setShowSizePanel(false)
+    } else {
+      // 小程序环境
+      Taro.saveImageToPhotosAlbum({
+        filePath: generatedImage,
+        success: () => {
+          Taro.showToast({
+            title: '保存成功！',
+            icon: 'success'
+          })
+        },
+        fail: () => {
+          Taro.showToast({
+            title: '保存失败',
+            icon: 'none'
+          })
+        }
+      })
+    }
   }
 
   return (
     <View className="container">
-      {/* 画布区域 */}
-      <View className="canvas-wrapper">
-        <Canvas
-          canvasId="drawCanvas"
-          className="draw-canvas"
-          disableScroll
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        />
+      {/* 头部标题 */}
+      <View className="header">
+        <Text className="title">✨ AI 手抄报生成器</Text>
+        <Text className="subtitle">为宝贝生成精美的手抄报</Text>
+        <View className="settings-btn" onClick={goToSettings}>
+          <Text className="settings-icon">⚙️</Text>
+        </View>
       </View>
 
-      {/* 工具栏 */}
-      <View className="toolbar">
-        {/* 颜色选择器 */}
-        <View className="color-picker">
-          {COLORS.map((color) => (
+      {/* API Key 提示 */}
+      {!hasKey && (
+        <View className="api-tip" onClick={goToSettings}>
+          <Text className="tip-text">⚠️ 请先配置 API Key 才能使用</Text>
+        </View>
+      )}
+
+      {/* 输入区域 */}
+      <View className="input-section">
+        <Text className="section-title">📝 输入手抄报主题</Text>
+        <Textarea
+          className="prompt-input"
+          placeholder="例如：春天来了，花儿开放"
+          value={prompt}
+          onInput={(e) => setPrompt(e.detail.value)}
+          maxlength={200}
+          disabled={isGenerating}
+        />
+        <View className="char-count">
+          <Text>{prompt.length}/200</Text>
+        </View>
+      </View>
+
+      {/* 示例提示词 */}
+      <View className="examples-section">
+        <Text className="section-title">💡 试试这些主题</Text>
+        <View className="examples">
+          {EXAMPLE_PROMPTS.map((example, index) => (
             <View
-              key={color}
-              className={`color-item ${currentColor === color && !isEraser ? 'active' : ''}`}
-              style={{ backgroundColor: color }}
-              onClick={() => handleColorSelect(color)}
-            />
+              key={index}
+              className="example-tag"
+              onClick={() => useExample(example)}
+            >
+              <Text>{example}</Text>
+            </View>
           ))}
         </View>
+      </View>
 
-        {/* 工具按钮 */}
-        <View className="tool-buttons">
-          {/* 画笔大小 */}
-          <View className="tool-group">
-            <View 
-              className="tool-btn size-btn"
-              onClick={() => setShowSizePanel(!showSizePanel)}
-            >
-              <View 
-                className="size-preview"
-                style={{ 
-                  width: `${Math.min(brushSize, 24)}px`, 
-                  height: `${Math.min(brushSize, 24)}px`,
-                  backgroundColor: isEraser ? '#999' : currentColor
-                }}
-              />
-            </View>
-            
-            {/* 大小选择面板 */}
-            {showSizePanel && (
-              <View className="size-panel">
-                {BRUSH_SIZES.map((size) => (
-                  <View
-                    key={size}
-                    className={`size-option ${brushSize === size ? 'active' : ''}`}
-                    onClick={() => handleSizeSelect(size)}
-                  >
-                    <View 
-                      className="size-dot"
-                      style={{ 
-                        width: `${Math.min(size, 24)}px`, 
-                        height: `${Math.min(size, 24)}px` 
-                      }}
-                    />
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+      {/* 生成按钮 */}
+      <Button
+        className={`generate-btn ${isGenerating ? 'loading' : ''}`}
+        onClick={handleGenerate}
+        disabled={isGenerating}
+      >
+        {isGenerating ? '🎨 正在生成中...' : '🚀 生成手抄报'}
+      </Button>
 
-          {/* 橡皮擦 */}
-          <View 
-            className={`tool-btn ${isEraser ? 'active' : ''}`}
-            onClick={toggleEraser}
-          >
-            <Text className="btn-text">橡皮</Text>
-          </View>
-
-          {/* 清空 */}
-          <View className="tool-btn danger" onClick={handleClear}>
-            <Text className="btn-text">清空</Text>
-          </View>
-
-          {/* 保存 */}
-          <View className="tool-btn primary" onClick={handleSave}>
-            <Text className="btn-text">保存</Text>
-          </View>
+      {/* 加载状态 */}
+      {isGenerating && (
+        <View className="loading-section">
+          <View className="loading-spinner" />
+          <Text className="loading-text">AI 正在为宝贝创作手抄报，请稍候...</Text>
         </View>
+      )}
+
+      {/* 错误提示 */}
+      {error && (
+        <View className="error-section">
+          <Text className="error-text">❌ {error}</Text>
+        </View>
+      )}
+
+      {/* 生成结果 */}
+      {generatedImage && (
+        <View className="result-section">
+          <Text className="section-title">🎉 生成结果</Text>
+          <View className="image-wrapper">
+            <Image
+              className="generated-image"
+              src={generatedImage}
+              mode="widthFix"
+              showMenuByLongpress
+            />
+          </View>
+          <Button className="save-btn" onClick={handleSave}>
+            💾 保存图片
+          </Button>
+        </View>
+      )}
+
+      {/* 底部说明 */}
+      <View className="footer">
+        <Text className="footer-text">
+          Powered by Gemini 3 Pro | 专为幼儿园妈妈设计 ❤️
+        </Text>
       </View>
     </View>
   )

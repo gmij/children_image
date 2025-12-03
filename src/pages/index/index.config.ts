@@ -1,4 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: '儿童画图',
-  disableScroll: true
+  navigationBarTitleText: 'AI 手抄报生成器',
+  enablePullDownRefresh: false
 })

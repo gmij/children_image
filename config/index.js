@@ -45,9 +45,13 @@ const config = {
     }
   },
   h5: {
-    publicPath: '/',
+    // 为 GitHub Pages 部署使用相对路径
+    publicPath: './',
     staticDirectory: 'static',
     esnextModules: ['taro-ui'],
+    router: {
+      mode: 'hash' // 使用 hash 路由，适合静态部署
+    },
     postcss: {
       autoprefixer: {
         enable: true,
