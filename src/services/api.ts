@@ -1,10 +1,10 @@
 /**
  * Gemini 3 Pro 图像生成 API 服务
- * 使用万界方舟 OpenAI 兼容接口
+ * 使用万界方舟 Gemini API 接口
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/v1'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1beta'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
@@ -135,21 +135,25 @@ export async function generateImage(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${API_BASE_URL}/models/${MODEL_NAME}:streamGenerateContent?alt=sse`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: enhancedPrompt
+            parts: [
+              {
+                text: enhancedPrompt
+              }
+            ]
           }
         ],
-        stream: true
+        generationConfig: {
+          responseModalities: ['Text', 'Image']
+        }
       })
     })
 
@@ -191,13 +195,25 @@ export async function generateImage(
 
           try {
             const parsed = JSON.parse(data)
-            const content = parsed.choices?.[0]?.delta?.content || ''
+            // Gemini API 返回格式: candidates[0].content.parts[*]
+            const parts = parsed.candidates?.[0]?.content?.parts || []
             
-            // 使用统一的图片提取方法
-            const imageUrl = extractImageFromContent(content)
-            if (imageUrl) {
-              lastImageUrl = imageUrl
-              callbacks.onProgress?.(imageUrl)
+            for (const part of parts) {
+              // 检查是否是图片数据 (inlineData)
+              if (part.inlineData?.data) {
+                const mimeType = part.inlineData.mimeType || 'image/png'
+                const imageUrl = `data:${mimeType};base64,${part.inlineData.data}`
+                lastImageUrl = imageUrl
+                callbacks.onProgress?.(imageUrl)
+              }
+              // 检查是否是文本内容中包含图片
+              if (part.text) {
+                const imageUrl = extractImageFromContent(part.text)
+                if (imageUrl) {
+                  lastImageUrl = imageUrl
+                  callbacks.onProgress?.(imageUrl)
+                }
+              }
             }
           } catch (parseError) {
             // SSE 流中可能有不完整的 JSON 数据，这是正常的，继续处理
@@ -237,21 +253,25 @@ export async function generateImageNonStream(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${API_BASE_URL}/models/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: enhancedPrompt
+            parts: [
+              {
+                text: enhancedPrompt
+              }
+            ]
           }
         ],
-        stream: false
+        generationConfig: {
+          responseModalities: ['Text', 'Image']
+        }
       })
     })
 
@@ -261,10 +281,26 @@ export async function generateImageNonStream(
     }
 
     const data = await response.json()
-    const content = data.choices?.[0]?.message?.content || ''
+    // Gemini API 返回格式: candidates[0].content.parts[*]
+    const parts = data.candidates?.[0]?.content?.parts || []
+    let imageUrl: string | null = null
 
-    // 使用统一的图片提取方法
-    const imageUrl = extractImageFromContent(content)
+    for (const part of parts) {
+      // 检查是否是图片数据 (inlineData)
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png'
+        imageUrl = `data:${mimeType};base64,${part.inlineData.data}`
+        break
+      }
+      // 检查是否是文本内容中包含图片
+      if (part.text) {
+        const extractedUrl = extractImageFromContent(part.text)
+        if (extractedUrl) {
+          imageUrl = extractedUrl
+          break
+        }
+      }
+    }
 
     if (imageUrl) {
       callbacks.onComplete?.(imageUrl)
