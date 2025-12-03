@@ -4,7 +4,7 @@
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/v1/ai'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
@@ -135,7 +135,7 @@ export async function generateImage(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}/streamGenerateContent`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:streamGenerateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,7 +152,11 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          response_modalities: ['TEXT', 'IMAGE']
+          thinkingMode: true,
+          aspectRatio: '2:3',
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
         }
       })
     })
@@ -253,7 +257,7 @@ export async function generateImageNonStream(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}/generateContent`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -270,7 +274,11 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          response_modalities: ['TEXT', 'IMAGE']
+          thinkingMode: true,
+          aspectRatio: '2:3',
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
         }
       })
     })
