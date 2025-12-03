@@ -133,9 +133,9 @@ npm run build:h5
 
 ## API 说明
 
-本应用使用万界方舟提供的 OpenAI 兼容接口调用 Gemini 3 Pro 模型：
+本应用使用万界方舟提供的 Gemini API 接口调用 Gemini 3 Pro 模型：
 
-- **API 端点**: `https://maas-openapi.wanjiedata.com/api/v1/chat/completions`
+- **API 端点**: `https://maas-openapi.wanjiedata.com/api/v1beta/models/gemini-3-pro-image-preview:generateContent`
 - **模型名称**: `gemini-3-pro-image-preview`
 - **支持流式**: 否（文生图接口不支持流式输出）
 

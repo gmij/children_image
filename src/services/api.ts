@@ -5,7 +5,7 @@
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1/chat/completions'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
@@ -136,21 +136,26 @@ export async function generateImage(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(API_BASE_URL, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: enhancedPrompt
+            parts: [
+              {
+                text: enhancedPrompt
+              }
+            ]
           }
         ],
-        stream: false
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          aspectRatio: '2:3'
+        }
       })
     })
 
@@ -161,22 +166,25 @@ export async function generateImage(
 
     const data = await response.json()
     
-    // OpenAI 兼容格式返回: choices[0].message.content
-    const content = data.choices?.[0]?.message?.content
+    // Gemini API 返回格式: candidates[0].content.parts[*]
+    const parts = data.candidates?.[0]?.content?.parts || []
     let imageUrl: string | null = null
 
-    if (content) {
-      // 检查内容是否包含图片
-      imageUrl = extractImageFromContent(content)
-    }
-
-    // 也检查是否有 base64 图片数据在其他位置
-    if (!imageUrl && data.data?.[0]?.b64_json) {
-      imageUrl = `data:image/png;base64,${data.data[0].b64_json}`
-    }
-
-    if (!imageUrl && data.data?.[0]?.url) {
-      imageUrl = data.data[0].url
+    for (const part of parts) {
+      // 检查是否是图片数据 (inlineData)
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png'
+        imageUrl = `data:${mimeType};base64,${part.inlineData.data}`
+        break
+      }
+      // 检查是否是文本内容中包含图片
+      if (part.text) {
+        const extractedUrl = extractImageFromContent(part.text)
+        if (extractedUrl) {
+          imageUrl = extractedUrl
+          break
+        }
+      }
     }
 
     if (imageUrl) {
@@ -209,21 +217,26 @@ export async function generateImageNonStream(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(API_BASE_URL, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: MODEL_NAME,
-        messages: [
+        contents: [
           {
-            role: 'user',
-            content: enhancedPrompt
+            parts: [
+              {
+                text: enhancedPrompt
+              }
+            ]
           }
         ],
-        stream: false
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          aspectRatio: '2:3'
+        }
       })
     })
 
@@ -234,22 +247,25 @@ export async function generateImageNonStream(
 
     const data = await response.json()
     
-    // OpenAI 兼容格式返回: choices[0].message.content
-    const content = data.choices?.[0]?.message?.content
+    // Gemini API 返回格式: candidates[0].content.parts[*]
+    const parts = data.candidates?.[0]?.content?.parts || []
     let imageUrl: string | null = null
 
-    if (content) {
-      // 检查内容是否包含图片
-      imageUrl = extractImageFromContent(content)
-    }
-
-    // 也检查是否有 base64 图片数据在其他位置
-    if (!imageUrl && data.data?.[0]?.b64_json) {
-      imageUrl = `data:image/png;base64,${data.data[0].b64_json}`
-    }
-
-    if (!imageUrl && data.data?.[0]?.url) {
-      imageUrl = data.data[0].url
+    for (const part of parts) {
+      // 检查是否是图片数据 (inlineData)
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png'
+        imageUrl = `data:${mimeType};base64,${part.inlineData.data}`
+        break
+      }
+      // 检查是否是文本内容中包含图片
+      if (part.text) {
+        const extractedUrl = extractImageFromContent(part.text)
+        if (extractedUrl) {
+          imageUrl = extractedUrl
+          break
+        }
+      }
     }
 
     if (imageUrl) {
