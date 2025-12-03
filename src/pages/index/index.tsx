@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
-import { generateImage, generateImageNonStream, hasApiKey } from '../../services/api'
+import { generateImage, hasApiKey } from '../../services/api'
 import './index.scss'
 
 // 示例提示词
@@ -58,14 +58,11 @@ export default function Index() {
     setError('')
     setGeneratedImage('')
 
-    // 优先尝试流式调用，失败则使用非流式
+    // 调用非流式 API（文生图不支持流式输出）
     try {
       await generateImage(prompt, {
         onStart: () => {
           console.log('开始生成...')
-        },
-        onProgress: (imageUrl) => {
-          setGeneratedImage(imageUrl)
         },
         onComplete: (imageUrl) => {
           setGeneratedImage(imageUrl)
@@ -75,23 +72,9 @@ export default function Index() {
             icon: 'success'
           })
         },
-        onError: async (err) => {
-          console.log('流式调用失败，尝试非流式:', err)
-          // 尝试非流式调用
-          await generateImageNonStream(prompt, {
-            onComplete: (imageUrl) => {
-              setGeneratedImage(imageUrl)
-              setIsGenerating(false)
-              Taro.showToast({
-                title: '生成成功！',
-                icon: 'success'
-              })
-            },
-            onError: (finalErr) => {
-              setError(finalErr)
-              setIsGenerating(false)
-            }
-          })
+        onError: (err) => {
+          setError(err)
+          setIsGenerating(false)
         }
       })
     } catch (err) {

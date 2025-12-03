@@ -9,7 +9,6 @@ A multi-platform AI-powered handwritten newspaper generator for children, suppor
 - 🎨 **AI 生成** - 使用 Gemini 3 Pro 大模型生成精美手抄报
 - 📝 **简单输入** - 只需一句话描述主题即可
 - 💡 **示例提示** - 提供多个示例主题快速开始
-- ⏳ **流式渲染** - 实时显示生成过程
 - 💾 **保存图片** - 保存作品到相册或下载
 - 📱 **多端支持** - 同时支持 H5 网页和微信小程序
 - 🔐 **安全配置** - API Key 本地存储，安全可靠
@@ -33,7 +32,7 @@ npm install
 ### 2. 配置 API Key
 
 获取万界方舟 API Key：
-1. 访问 [万界方舟](https://fangzhou.wanjiedata.com)
+1. 访问 [万界方舟](https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA)
 2. 注册并登录账号
 3. 在个人中心获取 API Key
 
@@ -134,11 +133,11 @@ npm run build:h5
 
 ## API 说明
 
-本应用使用万界方舟提供的 OpenAI 兼容接口调用 Gemini 3 Pro 模型：
+本应用使用万界方舟提供的 Gemini API 接口调用 Gemini 3 Pro 模型：
 
-- **API 端点**: `https://maas-openapi.wanjiedata.com/api/v1/chat/completions`
+- **API 端点**: `https://maas-openapi.wanjiedata.com/api/v1beta/models/gemini-3-pro-image-preview:generateContent`
 - **模型名称**: `gemini-3-pro-image-preview`
-- **支持流式**: 是
+- **支持流式**: 否（文生图接口不支持流式输出）
 
 ## 许可证 (License)
 

@@ -123,7 +123,7 @@ export default function Settings() {
           <Text className="help-step">4. 复制您的 API Key</Text>
         </View>
         <View className="help-link">
-          <Text className="link-text">🔗 https://fangzhou.wanjiedata.com</Text>
+          <Text className="link-text">🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
         </View>
       </View>
 
