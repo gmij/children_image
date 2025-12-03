@@ -57,23 +57,6 @@ export default function Settings() {
     setShowKey(!showKey)
   }
 
-  // 安全地遮罩 API Key，处理各种长度情况
-  const getMaskedKey = (key: string): string => {
-    if (!key) return ''
-    const len = key.length
-    if (len <= 4) {
-      return '*'.repeat(len)
-    } else if (len <= 8) {
-      return key.slice(0, 2) + '*'.repeat(len - 2)
-    } else if (len <= 12) {
-      return key.slice(0, 4) + '*'.repeat(len - 4)
-    } else {
-      return key.slice(0, 8) + '*'.repeat(len - 12) + key.slice(-4)
-    }
-  }
-
-  const maskedKey = getMaskedKey(apiKeyValue)
-
   return (
     <View className="settings-container">
       <View className="settings-header">
@@ -96,7 +79,7 @@ export default function Settings() {
             className="api-input"
             type={showKey ? 'text' : 'safe-password'}
             placeholder="请输入您的 API Key"
-            value={showKey ? apiKeyValue : maskedKey}
+            value={apiKeyValue}
             onInput={(e) => setApiKeyValue(e.detail.value)}
             password={!showKey}
           />
