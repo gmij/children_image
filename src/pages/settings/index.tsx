@@ -78,9 +78,13 @@ export default function Settings() {
           <Textarea
             className="api-input"
             placeholder="请输入您的 API Key"
-            value={apiKeyValue}
-            onInput={(e) => setApiKeyValue(e.detail.value)}
-            password={!showKey}
+            value={showKey ? apiKeyValue : apiKeyValue.replace(/./g, '•')}
+            onInput={(e) => {
+              if (showKey) {
+                setApiKeyValue(e.detail.value)
+              }
+            }}
+            disabled={!showKey && apiKeyValue.length > 0}
           />
         </View>
 
