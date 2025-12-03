@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Button } from '@tarojs/components'
 import { getApiKey, setApiKey } from '../../services/api'
@@ -15,11 +15,11 @@ export default function Settings() {
     }
   }, [])
 
-  const maskedValue = useMemo(() => {
-    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
-  }, [showKey, apiKeyValue])
+  // 显示的值：显示模式下显示真实值，隐藏模式下显示 mask
+  const displayValue = showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
 
   const handleInput = useCallback((e) => {
+    // 只有在显示模式下才允许编辑
     if (showKey) {
       setApiKeyValue(e.detail.value)
     }
@@ -88,9 +88,9 @@ export default function Settings() {
           <Textarea
             className="api-input"
             placeholder="请输入您的 API Key"
-            value={maskedValue}
+            value={displayValue}
             onInput={handleInput}
-            maxlength={5000}
+            maxlength={-1}
             disabled={!showKey && (apiKeyValue?.length || 0) > 0}
           />
         </View>
