@@ -1,0 +1,171 @@
+.settings-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  padding: 16px;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+
+.settings-header {
+  text-align: center;
+  padding: 24px 16px;
+  margin-bottom: 16px;
+}
+
+.settings-title {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.settings-desc {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.settings-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.toggle-visibility {
+  padding: 4px 12px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.input-wrapper {
+  margin-bottom: 16px;
+}
+
+.api-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #f9f9f9;
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: #4CAF50;
+    background: #fff;
+  }
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+}
+
+.save-btn {
+  flex: 1;
+  height: 48px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.clear-btn {
+  width: 100px;
+  height: 48px;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 14px;
+  border: none;
+  border-radius: 24px;
+
+  &:active {
+    background: #e0e0e0;
+  }
+}
+
+.help-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.help-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.help-steps {
+  padding-left: 8px;
+}
+
+.help-step {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  line-height: 2;
+}
+
+.help-link {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e3f2fd;
+  border-radius: 8px;
+}
+
+.link-text {
+  font-size: 12px;
+  color: #1976D2;
+  word-break: break-all;
+}
+
+.info-section {
+  background: #fff8e1;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.info-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f57c00;
+  margin-bottom: 8px;
+}
+
+.info-text {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.8;
+}
