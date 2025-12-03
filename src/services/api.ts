@@ -173,7 +173,11 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
+          thinkingMode: true,
+          aspectRatio: '2:3',
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
         }
       })
     })
@@ -252,7 +256,11 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
+          thinkingMode: true,
+          aspectRatio: '2:3',
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
         }
       })
     })
