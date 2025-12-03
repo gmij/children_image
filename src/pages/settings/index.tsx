@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Button } from '@tarojs/components'
 import { getApiKey, setApiKey } from '../../services/api'
@@ -14,6 +14,16 @@ export default function Settings() {
       setApiKeyValue(savedKey)
     }
   }, [])
+
+  const maskedValue = useMemo(() => {
+    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue.length)
+  }, [showKey, apiKeyValue])
+
+  const handleInput = useCallback((e) => {
+    if (showKey) {
+      setApiKeyValue(e.detail.value)
+    }
+  }, [showKey])
 
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
@@ -78,12 +88,8 @@ export default function Settings() {
           <Textarea
             className="api-input"
             placeholder="请输入您的 API Key"
-            value={showKey ? apiKeyValue : apiKeyValue.replace(/./g, '•')}
-            onInput={(e) => {
-              if (showKey) {
-                setApiKeyValue(e.detail.value)
-              }
-            }}
+            value={maskedValue}
+            onInput={handleInput}
             disabled={!showKey && apiKeyValue.length > 0}
           />
         </View>
