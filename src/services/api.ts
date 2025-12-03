@@ -4,7 +4,7 @@
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/v1'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
