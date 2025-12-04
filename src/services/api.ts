@@ -242,10 +242,10 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          thinkingMode: true,
-          aspectRatio: aspectRatio,
-          imageGenerationConfig: {
-            quality: 'high_fidelity_4k'
+          responseModalities: ['Image'],
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: '2K'
           }
         }
       })
@@ -327,10 +327,10 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          thinkingMode: true,
-          aspectRatio: aspectRatio,
-          imageGenerationConfig: {
-            quality: 'high_fidelity_4k'
+          responseModalities: ['Image'],
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: '2K'
           }
         }
       })
