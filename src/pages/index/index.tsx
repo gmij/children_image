@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
-import { generateImage, hasApiKey, GenerateOptions, getPaperSizeIndex, getPaperOrientation } from '../../services/api'
+import { 
+  generateImage, hasApiKey, GenerateOptions, 
+  getPaperSizeIndex, getPaperOrientation, 
+  getImageStyle, STYLE_NAMES,
+  getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage
+} from '../../services/api'
 import './index.scss'
 
 // 示例提示词
@@ -28,16 +33,23 @@ export default function Index() {
   const [generatedImage, setGeneratedImage] = useState('')
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
-  const [showPreview, setShowPreview] = useState(false) // 图片预览弹窗
+  const [showFullscreen, setShowFullscreen] = useState(false) // 全屏预览
+  const [currentStyle, setCurrentStyle] = useState('handwritten') // 当前风格
+  const [historyImages, setHistoryImages] = useState<HistoryImage[]>([]) // 历史图片
+  const [previewHistoryImage, setPreviewHistoryImage] = useState<string | null>(null) // 预览历史图片
 
   // 检查 API Key 配置状态 - 页面首次加载时
   useEffect(() => {
     setHasKey(hasApiKey())
+    setCurrentStyle(getImageStyle())
+    setHistoryImages(getImageHistory())
   }, [])
 
-  // 页面显示时重新检查 API Key 状态（从设置页返回时触发）
+  // 页面显示时重新检查 API Key 状态和风格（从设置页返回时触发）
   useDidShow(() => {
     setHasKey(hasApiKey())
+    setCurrentStyle(getImageStyle())
+    setHistoryImages(getImageHistory())
   })
 
   // 跳转到设置页面
@@ -51,6 +63,37 @@ export default function Index() {
     const isLandscape = getPaperOrientation()
     const paper = PAPER_SIZES[paperIndex]
     return isLandscape ? paper.landscape : paper.portrait
+  }
+
+  // 获取风格名称
+  const getStyleName = (): string => {
+    return STYLE_NAMES[currentStyle] || '手抄报'
+  }
+
+  // 关闭全屏预览并保存到历史
+  const closeFullscreenAndSave = () => {
+    if (generatedImage) {
+      const newImage = addImageToHistory(generatedImage)
+      setHistoryImages(prev => [newImage, ...prev].slice(0, 3))
+    }
+    setShowFullscreen(false)
+    setGeneratedImage('')
+  }
+
+  // 删除历史图片
+  const handleDeleteHistory = (e: React.MouseEvent, imageId: string) => {
+    e.stopPropagation()
+    Taro.showModal({
+      title: '确认删除',
+      content: '确定要删除这张图片吗？',
+      success: (res) => {
+        if (res.confirm) {
+          deleteImageFromHistory(imageId)
+          setHistoryImages(prev => prev.filter(img => img.id !== imageId))
+          Taro.showToast({ title: '已删除', icon: 'success' })
+        }
+      }
+    })
   }
 
   // 生成图片
@@ -94,10 +137,7 @@ export default function Index() {
         onComplete: (imageUrl) => {
           setGeneratedImage(imageUrl)
           setIsGenerating(false)
-          Taro.showToast({
-            title: '生成成功！',
-            icon: 'success'
-          })
+          setShowFullscreen(true) // 生成完成后直接显示全屏
         },
         onError: (err) => {
           setError(err)
@@ -116,14 +156,14 @@ export default function Index() {
   }
 
   // 保存图片
-  const handleSave = () => {
-    if (!generatedImage) return
+  const handleSave = (imageUrl: string) => {
+    if (!imageUrl) return
 
     if (process.env.TARO_ENV === 'h5') {
       try {
         const link = document.createElement('a')
-        link.href = generatedImage
-        link.download = `handwritten_newspaper_${Date.now()}.png`
+        link.href = imageUrl
+        link.download = `${getStyleName()}_${Date.now()}.png`
         link.click()
         Taro.showToast({
           title: '已下载！',
@@ -138,7 +178,7 @@ export default function Index() {
     } else {
       // 小程序环境
       Taro.saveImageToPhotosAlbum({
-        filePath: generatedImage,
+        filePath: imageUrl,
         success: () => {
           Taro.showToast({
             title: '保存成功！',
@@ -159,8 +199,8 @@ export default function Index() {
     <View className="container">
       {/* 头部标题 */}
       <View className="header">
-        <Text className="title">✨ AI 手抄报生成器</Text>
-        <Text className="subtitle">为宝贝生成精美的手抄报</Text>
+        <Text className="title">✨ AI {getStyleName()}生成器</Text>
+        <Text className="subtitle">为宝贝生成精美的{getStyleName()}</Text>
         <View className="settings-btn" onClick={goToSettings}>
           <Text className="settings-icon">⚙️</Text>
         </View>
@@ -175,10 +215,10 @@ export default function Index() {
 
       {/* 输入区域 */}
       <View className="input-section">
-        <Text className="section-title">📝 输入手抄报主题</Text>
+        <Text className="section-title">📝 输入{getStyleName()}主题</Text>
         <Textarea
           className="prompt-input"
-          placeholder="例如：春天来了，花儿开放"
+          placeholder={`例如：春天来了，花儿开放`}
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -211,14 +251,14 @@ export default function Index() {
         onClick={handleGenerate}
         disabled={isGenerating}
       >
-        {isGenerating ? '🎨 正在生成中...' : '🚀 生成手抄报'}
+        {isGenerating ? '🎨 正在生成中...' : `🚀 生成${getStyleName()}`}
       </Button>
 
       {/* 加载状态 */}
       {isGenerating && (
         <View className="loading-section">
           <View className="loading-spinner" />
-          <Text className="loading-text">AI 正在为宝贝创作手抄报，请稍候...</Text>
+          <Text className="loading-text">AI 正在为宝贝创作{getStyleName()}，请稍候...</Text>
         </View>
       )}
 
@@ -229,39 +269,71 @@ export default function Index() {
         </View>
       )}
 
-      {/* 生成结果 - 缩略图预览 */}
-      {generatedImage && (
-        <View className="result-section">
-          <Text className="section-title">🎉 生成结果（点击查看大图）</Text>
-          <View className="thumbnail-wrapper" onClick={() => setShowPreview(true)}>
-            <Image
-              className="thumbnail-image"
-              src={generatedImage}
-              mode="aspectFit"
-            />
-            <View className="zoom-hint">
-              <Text>🔍 点击查看完整图片</Text>
-            </View>
+      {/* 历史图片区域 */}
+      {historyImages.length > 0 && (
+        <View className="history-section">
+          <Text className="section-title">📸 历史图片（最多保存3张）</Text>
+          <View className="history-list">
+            {historyImages.map((img) => (
+              <View key={img.id} className="history-item">
+                <Image
+                  className="history-thumbnail"
+                  src={img.url}
+                  mode="aspectFill"
+                  onClick={() => setPreviewHistoryImage(img.url)}
+                />
+                <View 
+                  className="history-delete"
+                  onClick={(e) => handleDeleteHistory(e, img.id)}
+                >
+                  <Text>×</Text>
+                </View>
+              </View>
+            ))}
           </View>
-          <Button className="save-btn" onClick={handleSave}>
-            💾 保存图片
-          </Button>
         </View>
       )}
 
-      {/* 图片预览弹窗 */}
-      {showPreview && generatedImage && (
-        <View className="preview-modal" onClick={() => setShowPreview(false)}>
-          <View className="preview-content">
+      {/* 全屏预览 - 新生成的图片 */}
+      {showFullscreen && generatedImage && (
+        <View className="fullscreen-overlay">
+          <View className="fullscreen-close" onClick={closeFullscreenAndSave}>
+            <Text>×</Text>
+          </View>
+          <View className="fullscreen-content">
             <Image
-              className="preview-image"
+              className="fullscreen-image"
               src={generatedImage}
               mode="aspectFit"
               showMenuByLongpress
             />
-            <View className="preview-close">
-              <Text>✕ 点击任意处关闭</Text>
-            </View>
+          </View>
+          <View className="fullscreen-actions">
+            <Button className="save-btn-fullscreen" onClick={() => handleSave(generatedImage)}>
+              💾 保存图片
+            </Button>
+          </View>
+        </View>
+      )}
+
+      {/* 历史图片预览 */}
+      {previewHistoryImage && (
+        <View className="fullscreen-overlay" onClick={() => setPreviewHistoryImage(null)}>
+          <View className="fullscreen-close" onClick={() => setPreviewHistoryImage(null)}>
+            <Text>×</Text>
+          </View>
+          <View className="fullscreen-content">
+            <Image
+              className="fullscreen-image"
+              src={previewHistoryImage}
+              mode="aspectFit"
+              showMenuByLongpress
+            />
+          </View>
+          <View className="fullscreen-actions">
+            <Button className="save-btn-fullscreen" onClick={() => handleSave(previewHistoryImage)}>
+              💾 保存图片
+            </Button>
           </View>
         </View>
       )}

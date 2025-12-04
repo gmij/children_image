@@ -14,6 +14,17 @@ const PAPER_SIZE_STORAGE = 'paper_size_index'
 const ORIENTATION_STORAGE = 'paper_orientation'
 const IMAGE_STYLE_STORAGE = 'image_style'
 const SIGNATURE_STORAGE = 'user_signature'
+const IMAGE_HISTORY_STORAGE = 'image_history'
+
+// 历史图片最大数量
+const MAX_HISTORY_IMAGES = 3
+
+// 风格名称映射
+export const STYLE_NAMES: Record<string, string> = {
+  handwritten: '手抄报',
+  wireframe: '线框图',
+  blackboard: '黑板报',
+}
 
 // 风格选项映射
 const STYLE_PROMPTS: Record<string, string> = {
@@ -180,6 +191,79 @@ export function setSignature(signature: string): void {
       wx.setStorageSync(SIGNATURE_STORAGE, signature)
     } catch (e) {
       console.error('保存用户签名失败:', e)
+    }
+  }
+}
+
+/**
+ * 历史图片类型
+ */
+export interface HistoryImage {
+  id: string
+  url: string
+  createdAt: number
+}
+
+/**
+ * 获取历史图片
+ */
+export function getImageHistory(): HistoryImage[] {
+  if (process.env.TARO_ENV === 'h5') {
+    const data = localStorage.getItem(IMAGE_HISTORY_STORAGE)
+    return data ? JSON.parse(data) : []
+  }
+  try {
+    const data = wx.getStorageSync(IMAGE_HISTORY_STORAGE)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 添加图片到历史记录（最多保存3张）
+ */
+export function addImageToHistory(imageUrl: string): HistoryImage {
+  const history = getImageHistory()
+  const newImage: HistoryImage = {
+    id: `img_${Date.now()}`,
+    url: imageUrl,
+    createdAt: Date.now()
+  }
+  
+  // 添加到开头，保持最新的在前面
+  history.unshift(newImage)
+  
+  // 只保留最近的 MAX_HISTORY_IMAGES 张
+  const trimmedHistory = history.slice(0, MAX_HISTORY_IMAGES)
+  
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_HISTORY_STORAGE, JSON.stringify(trimmedHistory))
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_HISTORY_STORAGE, JSON.stringify(trimmedHistory))
+    } catch (e) {
+      console.error('保存历史图片失败:', e)
+    }
+  }
+  
+  return newImage
+}
+
+/**
+ * 删除历史图片
+ */
+export function deleteImageFromHistory(imageId: string): void {
+  const history = getImageHistory()
+  const filteredHistory = history.filter(img => img.id !== imageId)
+  
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_HISTORY_STORAGE, JSON.stringify(filteredHistory))
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_HISTORY_STORAGE, JSON.stringify(filteredHistory))
+    } catch (e) {
+      console.error('删除历史图片失败:', e)
     }
   }
 }
