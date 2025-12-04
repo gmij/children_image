@@ -9,6 +9,9 @@ import {
 } from '../../services/api'
 import './index.scss'
 
+// 历史图片最大数量
+const MAX_HISTORY_IMAGES = 3
+
 // 示例提示词
 const EXAMPLE_PROMPTS = [
   '春天来了，花儿开放',
