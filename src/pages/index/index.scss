@@ -438,12 +438,15 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 60px 16px 100px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .fullscreen-image {
-  width: 100%;
-  height: 80vh;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
 }
 
