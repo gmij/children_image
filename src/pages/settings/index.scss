@@ -169,6 +169,32 @@
   flex-shrink: 0;
 }
 
+.style-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.style-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+  
+  &.active {
+    background: #ff9800;
+    color: #fff;
+    border-color: #ff9800;
+  }
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
 .size-options {
   display: flex;
   flex-wrap: wrap;
@@ -233,4 +259,46 @@
 .footer-text {
   font-size: 11px;
   color: #999;
+}
+
+/* 签名设置 */
+.signature-row {
+  .signature-input {
+    flex: 1;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+    
+    &:focus {
+      border-color: #4CAF50;
+      background: #fff;
+    }
+  }
+}
+
+.signature-preview {
+  padding: 8px 12px;
+  margin-top: 4px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  
+  .preview-text {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+  }
+}
+
+/* 注册链接 */
+.register-link {
+  margin-top: 12px;
+  text-align: center;
+  
+  .link-text {
+    font-size: 13px;
+    color: #ff9800;
+  }
 }

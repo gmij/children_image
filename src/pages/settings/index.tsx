@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Input, Button } from '@tarojs/components'
-import { getApiKey, setApiKey, getPaperSizeIndex, setPaperSizeIndex, getPaperOrientation, setPaperOrientation } from '../../services/api'
+import { 
+  getApiKey, setApiKey, 
+  getPaperSizeIndex, setPaperSizeIndex, 
+  getPaperOrientation, setPaperOrientation,
+  getImageStyle, setImageStyle,
+  getSignature, setSignature
+} from '../../services/api'
 import './index.scss'
 
 // 纸张尺寸选项
@@ -13,11 +19,20 @@ const PAPER_SIZES = [
   { name: '4:3', portrait: '3:4', landscape: '4:3' },
 ]
 
+// 风格选项
+const STYLE_OPTIONS = [
+  { id: 'handwritten', name: '手抄报', prompt: '手抄报风格，手绘感，彩色边框装饰' },
+  { id: 'wireframe', name: '线框图', prompt: '线框图风格，简洁线条，黑白为主' },
+  { id: 'blackboard', name: '黑板报', prompt: '黑板报风格，深色背景，粉笔画效果' },
+]
+
 export default function Settings() {
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [selectedPaperIndex, setSelectedPaperIndex] = useState(0)
   const [isLandscape, setIsLandscape] = useState(false)
+  const [selectedStyle, setSelectedStyle] = useState('handwritten')
+  const [signatureValue, setSignatureValue] = useState('')
 
   useEffect(() => {
     const savedKey = getApiKey()
@@ -26,6 +41,8 @@ export default function Settings() {
     }
     setSelectedPaperIndex(getPaperSizeIndex())
     setIsLandscape(getPaperOrientation())
+    setSelectedStyle(getImageStyle())
+    setSignatureValue(getSignature())
   }, [])
 
   const handleInput = useCallback((e) => {
@@ -67,6 +84,17 @@ export default function Settings() {
     setPaperOrientation(landscape)
   }
 
+  const handleStyleChange = (styleId: string) => {
+    setSelectedStyle(styleId)
+    setImageStyle(styleId)
+  }
+
+  const handleSignatureInput = useCallback((e) => {
+    const value = e.detail.value
+    setSignatureValue(value)
+    setSignature(value)
+  }, [])
+
   const getAspectRatio = (): string => {
     const paper = PAPER_SIZES[selectedPaperIndex]
     return isLandscape ? paper.landscape : paper.portrait
@@ -105,9 +133,6 @@ export default function Settings() {
               <View className="action-btn primary" onClick={() => setIsEditing(true)}>
                 <Text>修改</Text>
               </View>
-              <View className="action-btn danger" onClick={handleClear}>
-                <Text>清除</Text>
-              </View>
             </View>
           </View>
         ) : (
@@ -122,24 +147,52 @@ export default function Settings() {
             <View className="api-actions">
               <Button className="save-btn" onClick={handleSave}>保存</Button>
               {isEditing && hasKey && (
-                <View className="action-btn" onClick={() => setIsEditing(false)}>
-                  <Text>取消</Text>
-                </View>
+                <>
+                  <View className="action-btn danger" onClick={handleClear}>
+                    <Text>清除</Text>
+                  </View>
+                  <View className="action-btn" onClick={() => setIsEditing(false)}>
+                    <Text>取消</Text>
+                  </View>
+                </>
               )}
             </View>
+            {/* 注册提示 - 仅在没有 API Key 时显示 */}
+            {!hasKey && (
+              <View className="register-tip" onClick={openRegister}>
+                <Text className="tip-text">🎁 新用户注册送16元，可生成约20张图</Text>
+                <Text className="tip-arrow">去注册 →</Text>
+              </View>
+            )}
+            {/* 编辑模式下显示注册链接 */}
+            {isEditing && hasKey && (
+              <View className="register-link" onClick={openRegister}>
+                <Text className="link-text">获取新的 API Key →</Text>
+              </View>
+            )}
           </View>
         )}
-
-        {/* 注册提示 - 紧凑版 */}
-        <View className="register-tip" onClick={openRegister}>
-          <Text className="tip-text">🎁 新用户注册送16元，可生成约20张图</Text>
-          <Text className="tip-arrow">去注册 →</Text>
-        </View>
       </View>
 
       {/* 图片设置 - 紧凑布局 */}
       <View className="card">
         <Text className="card-title">📐 图片设置</Text>
+        
+        {/* 风格选择 */}
+        <View className="setting-row">
+          <Text className="row-label">风格</Text>
+          <View className="style-options">
+            {STYLE_OPTIONS.map((style) => (
+              <View
+                key={style.id}
+                className={`style-chip ${selectedStyle === style.id ? 'active' : ''}`}
+                onClick={() => handleStyleChange(style.id)}
+              >
+                <Text>{style.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
         
         {/* 尺寸选择 - 横向排列 */}
         <View className="setting-row">
@@ -176,6 +229,23 @@ export default function Settings() {
           </View>
           <Text className="ratio-text">{getAspectRatio()}</Text>
         </View>
+
+        {/* 个性签名 */}
+        <View className="setting-row signature-row">
+          <Text className="row-label">签名</Text>
+          <Input
+            className="signature-input"
+            placeholder="输入昵称，将显示在图片右下角"
+            value={signatureValue}
+            onInput={handleSignatureInput}
+            maxlength={20}
+          />
+        </View>
+        {signatureValue && (
+          <View className="signature-preview">
+            <Text className="preview-text">签名预览: {signatureValue} @Gemini 3</Text>
+          </View>
+        )}
       </View>
 
       {/* 底部说明 - 简化 */}

@@ -12,6 +12,15 @@ const MODEL_NAME = 'gemini-3-pro-image-preview'
 const API_KEY_STORAGE = 'gemini_api_key'
 const PAPER_SIZE_STORAGE = 'paper_size_index'
 const ORIENTATION_STORAGE = 'paper_orientation'
+const IMAGE_STYLE_STORAGE = 'image_style'
+const SIGNATURE_STORAGE = 'user_signature'
+
+// 风格选项映射
+const STYLE_PROMPTS: Record<string, string> = {
+  handwritten: '手抄报风格，手绘感，彩色边框装饰',
+  wireframe: '线框图风格，简洁线条，黑白为主',
+  blackboard: '黑板报风格，深色背景，粉笔画效果',
+}
 
 // Base64 图片前缀模式
 const BASE64_PATTERNS = {
@@ -118,6 +127,64 @@ export function setPaperOrientation(isLandscape: boolean): void {
 }
 
 /**
+ * 获取图片风格
+ */
+export function getImageStyle(): string {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(IMAGE_STYLE_STORAGE) || 'handwritten'
+  }
+  try {
+    return wx.getStorageSync(IMAGE_STYLE_STORAGE) || 'handwritten'
+  } catch {
+    return 'handwritten'
+  }
+}
+
+/**
+ * 设置图片风格
+ */
+export function setImageStyle(style: string): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_STYLE_STORAGE, style)
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_STYLE_STORAGE, style)
+    } catch (e) {
+      console.error('保存图片风格失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取用户签名
+ */
+export function getSignature(): string {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(SIGNATURE_STORAGE) || ''
+  }
+  try {
+    return wx.getStorageSync(SIGNATURE_STORAGE) || ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 设置用户签名
+ */
+export function setSignature(signature: string): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(SIGNATURE_STORAGE, signature)
+  } else {
+    try {
+      wx.setStorageSync(SIGNATURE_STORAGE, signature)
+    } catch (e) {
+      console.error('保存用户签名失败:', e)
+    }
+  }
+}
+
+/**
  * 获取用户友好的错误信息
  */
 function getFriendlyErrorMessage(error: unknown): string {
@@ -141,7 +208,13 @@ function getFriendlyErrorMessage(error: unknown): string {
  * 生成手抄报提示词增强
  */
 function enhancePrompt(userPrompt: string): string {
-  return `请为幼儿园小朋友生成一张精美的手抄报图片。主题是：${userPrompt}
+  const style = getImageStyle()
+  const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.handwritten
+  const signature = getSignature()
+  
+  let prompt = `请为幼儿园小朋友生成一张精美的图片。主题是：${userPrompt}
+
+风格要求：${stylePrompt}
 
 要求：
 - 画面色彩鲜艳、活泼可爱，适合儿童
@@ -150,6 +223,14 @@ function enhancePrompt(userPrompt: string): string {
 - 图片风格要温馨、童趣
 - 可以包含一些简单的文字区域供孩子填写
 - 整体布局美观、有创意`
+
+  // 如果有签名，添加签名要求
+  if (signature.trim()) {
+    prompt += `
+- 请在图片右下角用艺术字体添加签名：${signature} @Gemini 3`
+  }
+
+  return prompt
 }
 
 /**
