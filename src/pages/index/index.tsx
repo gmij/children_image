@@ -73,12 +73,8 @@ export default function Index() {
     return STYLE_NAMES[currentStyle] || '手抄报'
   }
 
-  // 关闭全屏预览并保存到历史
-  const closeFullscreenAndSave = () => {
-    if (generatedImage) {
-      const newImage = addImageToHistory(generatedImage)
-      setHistoryImages(prev => [newImage, ...prev].slice(0, 3))
-    }
+  // 关闭全屏预览
+  const closeFullscreen = () => {
     setShowFullscreen(false)
     setGeneratedImage('')
   }
@@ -123,7 +119,19 @@ export default function Index() {
       return
     }
 
+    // 检查历史图片数量是否已满
+    if (historyImages.length >= MAX_HISTORY_IMAGES) {
+      Taro.showModal({
+        title: '历史图片已满',
+        content: `最多只能保存 ${MAX_HISTORY_IMAGES} 张图片，请先删除一些历史图片再生成新的。`,
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+
     setIsGenerating(true)
+    setShowFullscreen(true) // 生成时就显示全屏遮罩
     setError('')
     setGeneratedImage('')
 
@@ -140,11 +148,14 @@ export default function Index() {
         onComplete: (imageUrl) => {
           setGeneratedImage(imageUrl)
           setIsGenerating(false)
-          setShowFullscreen(true) // 生成完成后直接显示全屏
+          // 生成完成后自动添加到历史
+          const newImage = addImageToHistory(imageUrl)
+          setHistoryImages(prev => [newImage, ...prev].slice(0, MAX_HISTORY_IMAGES))
         },
         onError: (err) => {
           setError(err)
           setIsGenerating(false)
+          setShowFullscreen(false) // 错误时关闭遮罩
         }
       }, options)
     } catch (err) {
@@ -250,20 +261,14 @@ export default function Index() {
 
       {/* 生成按钮 */}
       <Button
-        className={`generate-btn ${isGenerating ? 'loading' : ''}`}
+        className={`generate-btn ${isGenerating ? 'loading' : ''} ${historyImages.length >= MAX_HISTORY_IMAGES ? 'disabled' : ''}`}
         onClick={handleGenerate}
-        disabled={isGenerating}
+        disabled={isGenerating || historyImages.length >= MAX_HISTORY_IMAGES}
       >
-        {isGenerating ? '🎨 正在生成中...' : `🚀 生成${getStyleName()}`}
+        {historyImages.length >= MAX_HISTORY_IMAGES 
+          ? '📸 历史已满，请先删除' 
+          : (isGenerating ? '🎨 正在生成中...' : `🚀 生成${getStyleName()}`)}
       </Button>
-
-      {/* 加载状态 */}
-      {isGenerating && (
-        <View className="loading-section">
-          <View className="loading-spinner" />
-          <Text className="loading-text">AI 正在为宝贝创作{getStyleName()}，请稍候...</Text>
-        </View>
-      )}
 
       {/* 错误提示 */}
       {error && (
@@ -297,28 +302,46 @@ export default function Index() {
         </View>
       )}
 
-      {/* 全屏预览 - 新生成的图片 */}
-      {showFullscreen && generatedImage && (
-        <View className="fullscreen-overlay" onClick={closeFullscreenAndSave}>
-          <View 
-            className="fullscreen-close" 
-            onClick={(e) => { e.stopPropagation(); closeFullscreenAndSave(); }}
-          >
-            <Text>×</Text>
-          </View>
-          <View className="fullscreen-content" onClick={(e) => e.stopPropagation()}>
-            <Image
-              className="fullscreen-image"
-              src={generatedImage}
-              mode="aspectFit"
-              showMenuByLongpress
-            />
-          </View>
-          <View className="fullscreen-actions" onClick={(e) => e.stopPropagation()}>
-            <Button className="save-btn-fullscreen" onClick={() => handleSave(generatedImage)}>
-              💾 保存图片
-            </Button>
-          </View>
+      {/* 全屏预览/生成中遮罩 */}
+      {showFullscreen && (
+        <View className="fullscreen-overlay" onClick={generatedImage ? closeFullscreen : undefined}>
+          {/* 关闭按钮 - 只在生成完成后显示 */}
+          {generatedImage && (
+            <View 
+              className="fullscreen-close" 
+              onClick={(e) => { e.stopPropagation(); closeFullscreen(); }}
+            >
+              <Text>×</Text>
+            </View>
+          )}
+          
+          {/* 生成中的加载状态 */}
+          {isGenerating && !generatedImage && (
+            <View className="fullscreen-loading" onClick={(e) => e.stopPropagation()}>
+              <View className="loading-spinner-large" />
+              <Text className="loading-text-large">🎨 AI 正在为宝贝创作{getStyleName()}...</Text>
+              <Text className="loading-hint">请稍候，生成完成后将自动显示</Text>
+            </View>
+          )}
+          
+          {/* 生成完成后显示图片 */}
+          {generatedImage && (
+            <>
+              <View className="fullscreen-content" onClick={(e) => e.stopPropagation()}>
+                <Image
+                  className="fullscreen-image"
+                  src={generatedImage}
+                  mode="aspectFit"
+                  showMenuByLongpress
+                />
+              </View>
+              <View className="fullscreen-actions" onClick={(e) => e.stopPropagation()}>
+                <Button className="save-btn-fullscreen" onClick={() => handleSave(generatedImage)}>
+                  💾 保存图片
+                </Button>
+              </View>
+            </>
+          )}
         </View>
       )}
 
