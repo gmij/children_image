@@ -1,31 +1,46 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Button } from '@tarojs/components'
-import { getApiKey, setApiKey } from '../../services/api'
+import { View, Text, Textarea, Button, Picker } from '@tarojs/components'
+import { getApiKey, setApiKey, getPaperSizeIndex, setPaperSizeIndex, getPaperOrientation, setPaperOrientation } from '../../services/api'
 import './index.scss'
+
+// 纸张尺寸选项 (宽:高)
+const PAPER_SIZES = [
+  { name: 'A4 纸', ratio: '210:297', portrait: '2:3', landscape: '3:2' },
+  { name: 'A3 纸', ratio: '297:420', portrait: '2:3', landscape: '3:2' },
+  { name: '正方形', ratio: '1:1', portrait: '1:1', landscape: '1:1' },
+  { name: '16:9 屏幕', ratio: '16:9', portrait: '9:16', landscape: '16:9' },
+  { name: '4:3 屏幕', ratio: '4:3', portrait: '3:4', landscape: '4:3' },
+]
 
 export default function Settings() {
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [selectedPaperIndex, setSelectedPaperIndex] = useState(0)
+  const [isLandscape, setIsLandscape] = useState(false)
 
   useEffect(() => {
     const savedKey = getApiKey()
     if (savedKey) {
       setApiKeyValue(savedKey)
     }
+    // 加载纸张设置
+    setSelectedPaperIndex(getPaperSizeIndex())
+    setIsLandscape(getPaperOrientation())
   }, [])
 
   // 显示的值：显示模式下显示真实值，隐藏模式下显示 mask
   const displayValue = useMemo(() => {
+    if (isEditing) return apiKeyValue
     return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
-  }, [showKey, apiKeyValue])
+  }, [showKey, apiKeyValue, isEditing])
 
   const handleInput = useCallback((e) => {
-    // 只有在显示模式下才允许编辑
-    if (showKey) {
+    if (isEditing) {
       setApiKeyValue(e.detail.value)
     }
-  }, [showKey])
+  }, [isEditing])
 
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
@@ -37,15 +52,11 @@ export default function Settings() {
     }
 
     setApiKey(apiKeyValue.trim())
+    setIsEditing(false)
     Taro.showToast({
       title: '保存成功！',
       icon: 'success'
     })
-
-    // 延迟返回
-    setTimeout(() => {
-      Taro.navigateBack()
-    }, 1500)
   }
 
   const handleClear = () => {
@@ -56,6 +67,7 @@ export default function Settings() {
         if (res.confirm) {
           setApiKey('')
           setApiKeyValue('')
+          setIsEditing(true)
           Taro.showToast({
             title: '已清除',
             icon: 'success'
@@ -69,44 +81,123 @@ export default function Settings() {
     setShowKey(!showKey)
   }
 
+  // 保存纸张尺寸
+  const handlePaperSizeChange = (index: number) => {
+    setSelectedPaperIndex(index)
+    setPaperSizeIndex(index)
+  }
+
+  // 保存纸张方向
+  const handleOrientationChange = (landscape: boolean) => {
+    setIsLandscape(landscape)
+    setPaperOrientation(landscape)
+  }
+
+  // 获取当前比例
+  const getAspectRatio = (): string => {
+    const paper = PAPER_SIZES[selectedPaperIndex]
+    return isLandscape ? paper.landscape : paper.portrait
+  }
+
+  // 是否已设置 API Key
+  const hasKey = apiKeyValue && apiKeyValue.length > 0
+
   return (
     <View className="settings-container">
       <View className="settings-header">
-        <Text className="settings-title">🔐 API 配置</Text>
+        <Text className="settings-title">⚙️ 设置</Text>
         <Text className="settings-desc">
-          配置万界方舟 API Key 以使用 Gemini 3 Pro 图像生成服务
+          配置 API Key 和图像生成参数
         </Text>
       </View>
 
+      {/* API Key 设置 */}
       <View className="settings-section">
         <View className="section-header">
-          <Text className="section-title">API Key</Text>
-          <View className="toggle-visibility" onClick={toggleShowKey}>
-            <Text>{showKey ? '🙈 隐藏' : '👁️ 显示'}</Text>
-          </View>
-        </View>
-
-        <View className="input-wrapper">
-          <Textarea
-            className="api-input"
-            placeholder="请输入您的 API Key"
-            value={displayValue}
-            onInput={handleInput}
-            maxlength={-1}
-            disabled={!showKey && (apiKeyValue?.length || 0) > 0}
-          />
-        </View>
-
-        <View className="button-group">
-          <Button className="save-btn" onClick={handleSave}>
-            💾 保存设置
-          </Button>
-          {apiKeyValue && (
-            <Button className="clear-btn" onClick={handleClear}>
-              🗑️ 清除
-            </Button>
+          <Text className="section-title">🔐 API Key</Text>
+          {hasKey && !isEditing && (
+            <View className="status-badge">
+              <Text className="status-text">✅ 已设置</Text>
+            </View>
           )}
         </View>
+
+        {hasKey && !isEditing ? (
+          <View className="api-status">
+            <Text className="api-hint">API Key 已配置，可以开始生成图片</Text>
+            <View className="button-group">
+              <Button className="update-btn" onClick={() => setIsEditing(true)}>
+                ✏️ 更新 API Key
+              </Button>
+              <Button className="clear-btn" onClick={handleClear}>
+                🗑️ 清除
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View className="input-wrapper">
+              <Textarea
+                className="api-input"
+                placeholder="请输入您的 API Key"
+                value={isEditing ? apiKeyValue : displayValue}
+                onInput={handleInput}
+                maxlength={-1}
+              />
+            </View>
+            <View className="button-group">
+              <Button className="save-btn" onClick={handleSave}>
+                💾 保存 API Key
+              </Button>
+              {isEditing && hasKey && (
+                <Button className="cancel-btn" onClick={() => setIsEditing(false)}>
+                  取消
+                </Button>
+              )}
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* 纸张设置 */}
+      <View className="settings-section">
+        <Text className="section-title">📐 纸张设置</Text>
+        <View className="paper-options">
+          {/* 纸张尺寸选择 */}
+          <View className="paper-picker">
+            <Text className="picker-label">纸张尺寸：</Text>
+            <Picker
+              mode='selector'
+              range={PAPER_SIZES.map(p => p.name)}
+              value={selectedPaperIndex}
+              onChange={(e) => handlePaperSizeChange(Number(e.detail.value))}
+            >
+              <View className="picker-value">
+                <Text>{PAPER_SIZES[selectedPaperIndex].name}</Text>
+                <Text className="picker-arrow">▼</Text>
+              </View>
+            </Picker>
+          </View>
+          {/* 横向/纵向切换 */}
+          <View className="orientation-toggle">
+            <Text className="picker-label">方向：</Text>
+            <View className="toggle-btns">
+              <View
+                className={`toggle-btn ${!isLandscape ? 'active' : ''}`}
+                onClick={() => handleOrientationChange(false)}
+              >
+                <Text>📄 纵向</Text>
+              </View>
+              <View
+                className={`toggle-btn ${isLandscape ? 'active' : ''}`}
+                onClick={() => handleOrientationChange(true)}
+              >
+                <Text>📃 横向</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <Text className="ratio-hint">当前比例：{getAspectRatio()}</Text>
       </View>
 
       <View className="help-section">

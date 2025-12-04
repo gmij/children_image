@@ -201,3 +201,134 @@
   color: #666;
   line-height: 1.8;
 }
+
+/* API Key 状态显示 */
+.status-badge {
+  padding: 4px 12px;
+  background: #e8f5e9;
+  border-radius: 12px;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.api-status {
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 12px;
+}
+
+.api-hint {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.update-btn {
+  flex: 1;
+  height: 48px;
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.4);
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.cancel-btn {
+  width: 80px;
+  height: 48px;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 14px;
+  border: none;
+  border-radius: 24px;
+
+  &:active {
+    background: #e0e0e0;
+  }
+}
+
+/* 纸张设置样式 */
+.paper-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.paper-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-label {
+  font-size: 14px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.picker-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  min-width: 120px;
+  font-size: 14px;
+  color: #333;
+}
+
+.picker-arrow {
+  font-size: 10px;
+  color: #999;
+  margin-left: 8px;
+}
+
+.orientation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  background: #f5f5f5;
+  color: #666;
+  transition: all 0.2s ease;
+
+  &.active {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: #fff;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.ratio-hint {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}

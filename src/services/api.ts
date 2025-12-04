@@ -10,6 +10,8 @@ const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
 const API_KEY_STORAGE = 'gemini_api_key'
+const PAPER_SIZE_STORAGE = 'paper_size_index'
+const ORIENTATION_STORAGE = 'paper_orientation'
 
 // Base64 图片前缀模式
 const BASE64_PATTERNS = {
@@ -55,6 +57,64 @@ export function setApiKey(apiKey: string): void {
  */
 export function hasApiKey(): boolean {
   return !!getApiKey()
+}
+
+/**
+ * 获取纸张尺寸索引
+ */
+export function getPaperSizeIndex(): number {
+  if (process.env.TARO_ENV === 'h5') {
+    return parseInt(localStorage.getItem(PAPER_SIZE_STORAGE) || '0', 10)
+  }
+  try {
+    return parseInt(wx.getStorageSync(PAPER_SIZE_STORAGE) || '0', 10)
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * 设置纸张尺寸索引
+ */
+export function setPaperSizeIndex(index: number): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(PAPER_SIZE_STORAGE, String(index))
+  } else {
+    try {
+      wx.setStorageSync(PAPER_SIZE_STORAGE, String(index))
+    } catch (e) {
+      console.error('保存纸张尺寸失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取纸张方向（true = 横向, false = 纵向）
+ */
+export function getPaperOrientation(): boolean {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(ORIENTATION_STORAGE) === 'true'
+  }
+  try {
+    return wx.getStorageSync(ORIENTATION_STORAGE) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 设置纸张方向
+ */
+export function setPaperOrientation(isLandscape: boolean): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(ORIENTATION_STORAGE, String(isLandscape))
+  } else {
+    try {
+      wx.setStorageSync(ORIENTATION_STORAGE, String(isLandscape))
+    } catch (e) {
+      console.error('保存纸张方向失败:', e)
+    }
+  }
 }
 
 /**
@@ -162,6 +222,7 @@ export async function generateImage(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -179,7 +240,14 @@ export async function generateImage(
               }
             ]
           }
-        ]
+        ],
+        generationConfig: {
+          thinkingMode: true,
+          aspectRatio: aspectRatio,
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
+        }
       })
     })
 
@@ -239,6 +307,7 @@ export async function generateImageNonStream(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -256,7 +325,14 @@ export async function generateImageNonStream(
               }
             ]
           }
-        ]
+        ],
+        generationConfig: {
+          thinkingMode: true,
+          aspectRatio: aspectRatio,
+          imageGenerationConfig: {
+            quality: 'high_fidelity_4k'
+          }
+        }
       })
     })
 

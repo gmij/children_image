@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button, Picker } from '@tarojs/components'
-import { generateImage, hasApiKey, GenerateOptions } from '../../services/api'
+import { View, Text, Textarea, Image, Button } from '@tarojs/components'
+import { generateImage, hasApiKey, GenerateOptions, getPaperSizeIndex, getPaperOrientation } from '../../services/api'
 import './index.scss'
 
 // 示例提示词
@@ -28,8 +28,6 @@ export default function Index() {
   const [generatedImage, setGeneratedImage] = useState('')
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
-  const [selectedPaperIndex, setSelectedPaperIndex] = useState(0) // 默认 A4
-  const [isLandscape, setIsLandscape] = useState(false) // 默认纵向
   const [showPreview, setShowPreview] = useState(false) // 图片预览弹窗
 
   // 检查 API Key 配置状态 - 页面首次加载时
@@ -47,9 +45,11 @@ export default function Index() {
     Taro.navigateTo({ url: '/pages/settings/index' })
   }
 
-  // 获取当前选择的纵横比
+  // 获取当前选择的纵横比（从存储读取）
   const getAspectRatio = (): string => {
-    const paper = PAPER_SIZES[selectedPaperIndex]
+    const paperIndex = getPaperSizeIndex()
+    const isLandscape = getPaperOrientation()
+    const paper = PAPER_SIZES[paperIndex]
     return isLandscape ? paper.landscape : paper.portrait
   }
 
@@ -203,47 +203,6 @@ export default function Index() {
             </View>
           ))}
         </View>
-      </View>
-
-      {/* 纸张设置 */}
-      <View className="paper-section">
-        <Text className="section-title">📐 纸张设置</Text>
-        <View className="paper-options">
-          {/* 纸张尺寸选择 */}
-          <View className="paper-picker">
-            <Text className="picker-label">纸张尺寸：</Text>
-            <Picker
-              mode='selector'
-              range={PAPER_SIZES.map(p => p.name)}
-              value={selectedPaperIndex}
-              onChange={(e) => setSelectedPaperIndex(Number(e.detail.value))}
-            >
-              <View className="picker-value">
-                <Text>{PAPER_SIZES[selectedPaperIndex].name}</Text>
-                <Text className="picker-arrow">▼</Text>
-              </View>
-            </Picker>
-          </View>
-          {/* 横向/纵向切换 */}
-          <View className="orientation-toggle">
-            <Text className="picker-label">方向：</Text>
-            <View className="toggle-btns">
-              <View
-                className={`toggle-btn ${!isLandscape ? 'active' : ''}`}
-                onClick={() => setIsLandscape(false)}
-              >
-                <Text>📄 纵向</Text>
-              </View>
-              <View
-                className={`toggle-btn ${isLandscape ? 'active' : ''}`}
-                onClick={() => setIsLandscape(true)}
-              >
-                <Text>📃 横向</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-        <Text className="ratio-hint">当前比例：{getAspectRatio()}</Text>
       </View>
 
       {/* 生成按钮 */}
