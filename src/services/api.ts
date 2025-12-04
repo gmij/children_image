@@ -410,7 +410,7 @@ export async function generateImage(
           responseModalities: ['Image'],
           imageConfig: {
             aspectRatio: aspectRatio,
-            imageSize: '2K'
+            imageSize: '1K'
           }
         }
       })
@@ -495,7 +495,7 @@ export async function generateImageNonStream(
           responseModalities: ['Image'],
           imageConfig: {
             aspectRatio: aspectRatio,
-            imageSize: '2K'
+            imageSize: '1K'
           }
         }
       })
