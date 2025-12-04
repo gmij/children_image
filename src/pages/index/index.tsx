@@ -299,11 +299,14 @@ export default function Index() {
 
       {/* 全屏预览 - 新生成的图片 */}
       {showFullscreen && generatedImage && (
-        <View className="fullscreen-overlay">
-          <View className="fullscreen-close" onClick={closeFullscreenAndSave}>
+        <View className="fullscreen-overlay" onClick={closeFullscreenAndSave}>
+          <View 
+            className="fullscreen-close" 
+            onClick={(e) => { e.stopPropagation(); closeFullscreenAndSave(); }}
+          >
             <Text>×</Text>
           </View>
-          <View className="fullscreen-content">
+          <View className="fullscreen-content" onClick={(e) => e.stopPropagation()}>
             <Image
               className="fullscreen-image"
               src={generatedImage}
@@ -311,7 +314,7 @@ export default function Index() {
               showMenuByLongpress
             />
           </View>
-          <View className="fullscreen-actions">
+          <View className="fullscreen-actions" onClick={(e) => e.stopPropagation()}>
             <Button className="save-btn-fullscreen" onClick={() => handleSave(generatedImage)}>
               💾 保存图片
             </Button>
@@ -322,10 +325,13 @@ export default function Index() {
       {/* 历史图片预览 */}
       {previewHistoryImage && (
         <View className="fullscreen-overlay" onClick={() => setPreviewHistoryImage(null)}>
-          <View className="fullscreen-close" onClick={() => setPreviewHistoryImage(null)}>
+          <View 
+            className="fullscreen-close" 
+            onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(null); }}
+          >
             <Text>×</Text>
           </View>
-          <View className="fullscreen-content">
+          <View className="fullscreen-content" onClick={(e) => e.stopPropagation()}>
             <Image
               className="fullscreen-image"
               src={previewHistoryImage}
@@ -333,7 +339,7 @@ export default function Index() {
               showMenuByLongpress
             />
           </View>
-          <View className="fullscreen-actions">
+          <View className="fullscreen-actions" onClick={(e) => e.stopPropagation()}>
             <Button className="save-btn-fullscreen" onClick={() => handleSave(previewHistoryImage)}>
               💾 保存图片
             </Button>
