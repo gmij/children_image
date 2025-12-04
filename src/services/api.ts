@@ -137,12 +137,20 @@ export interface GenerateCallbacks {
 }
 
 /**
+ * 图像生成选项
+ */
+export interface GenerateOptions {
+  aspectRatio?: string  // 如 '2:3', '3:2', '1:1', '16:9', '9:16'
+}
+
+/**
  * 调用 Gemini 3 Pro 生成图像
  * 注意：文生图接口不支持流式输出，使用非流式请求
  */
 export async function generateImage(
   prompt: string,
-  callbacks: GenerateCallbacks
+  callbacks: GenerateCallbacks,
+  options?: GenerateOptions
 ): Promise<void> {
   const apiKey = getApiKey()
   
@@ -154,6 +162,7 @@ export async function generateImage(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -174,7 +183,7 @@ export async function generateImage(
         ],
         generationConfig: {
           thinkingMode: true,
-          aspectRatio: '2:3',
+          aspectRatio: aspectRatio,
           imageGenerationConfig: {
             quality: 'high_fidelity_4k'
           }
@@ -225,7 +234,8 @@ export async function generateImage(
  */
 export async function generateImageNonStream(
   prompt: string,
-  callbacks: GenerateCallbacks
+  callbacks: GenerateCallbacks,
+  options?: GenerateOptions
 ): Promise<void> {
   const apiKey = getApiKey()
   
@@ -237,6 +247,7 @@ export async function generateImageNonStream(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -257,7 +268,7 @@ export async function generateImageNonStream(
         ],
         generationConfig: {
           thinkingMode: true,
-          aspectRatio: '2:3',
+          aspectRatio: aspectRatio,
           imageGenerationConfig: {
             quality: 'high_fidelity_4k'
           }

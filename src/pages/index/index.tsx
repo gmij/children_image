@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button } from '@tarojs/components'
-import { generateImage, hasApiKey } from '../../services/api'
+import { View, Text, Textarea, Image, Button, Picker } from '@tarojs/components'
+import { generateImage, hasApiKey, GenerateOptions } from '../../services/api'
 import './index.scss'
 
 // 示例提示词
@@ -13,12 +13,24 @@ const EXAMPLE_PROMPTS = [
   '中秋节快乐',
 ]
 
+// 纸张尺寸选项 (宽:高)
+const PAPER_SIZES = [
+  { name: 'A4 纸', ratio: '210:297', portrait: '2:3', landscape: '3:2' },
+  { name: 'A3 纸', ratio: '297:420', portrait: '2:3', landscape: '3:2' },
+  { name: '正方形', ratio: '1:1', portrait: '1:1', landscape: '1:1' },
+  { name: '16:9 屏幕', ratio: '16:9', portrait: '9:16', landscape: '16:9' },
+  { name: '4:3 屏幕', ratio: '4:3', portrait: '3:4', landscape: '4:3' },
+]
+
 export default function Index() {
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState('')
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
+  const [selectedPaperIndex, setSelectedPaperIndex] = useState(0) // 默认 A4
+  const [isLandscape, setIsLandscape] = useState(false) // 默认纵向
+  const [showPreview, setShowPreview] = useState(false) // 图片预览弹窗
 
   // 检查 API Key 配置状态 - 页面首次加载时
   useEffect(() => {
@@ -33,6 +45,12 @@ export default function Index() {
   // 跳转到设置页面
   const goToSettings = () => {
     Taro.navigateTo({ url: '/pages/settings/index' })
+  }
+
+  // 获取当前选择的纵横比
+  const getAspectRatio = (): string => {
+    const paper = PAPER_SIZES[selectedPaperIndex]
+    return isLandscape ? paper.landscape : paper.portrait
   }
 
   // 生成图片
@@ -63,6 +81,10 @@ export default function Index() {
     setError('')
     setGeneratedImage('')
 
+    const options: GenerateOptions = {
+      aspectRatio: getAspectRatio()
+    }
+
     // 调用非流式 API（文生图不支持流式输出）
     try {
       await generateImage(prompt, {
@@ -81,7 +103,7 @@ export default function Index() {
           setError(err)
           setIsGenerating(false)
         }
-      })
+      }, options)
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败')
       setIsGenerating(false)
@@ -183,6 +205,47 @@ export default function Index() {
         </View>
       </View>
 
+      {/* 纸张设置 */}
+      <View className="paper-section">
+        <Text className="section-title">📐 纸张设置</Text>
+        <View className="paper-options">
+          {/* 纸张尺寸选择 */}
+          <View className="paper-picker">
+            <Text className="picker-label">纸张尺寸：</Text>
+            <Picker
+              mode='selector'
+              range={PAPER_SIZES.map(p => p.name)}
+              value={selectedPaperIndex}
+              onChange={(e) => setSelectedPaperIndex(Number(e.detail.value))}
+            >
+              <View className="picker-value">
+                <Text>{PAPER_SIZES[selectedPaperIndex].name}</Text>
+                <Text className="picker-arrow">▼</Text>
+              </View>
+            </Picker>
+          </View>
+          {/* 横向/纵向切换 */}
+          <View className="orientation-toggle">
+            <Text className="picker-label">方向：</Text>
+            <View className="toggle-btns">
+              <View
+                className={`toggle-btn ${!isLandscape ? 'active' : ''}`}
+                onClick={() => setIsLandscape(false)}
+              >
+                <Text>📄 纵向</Text>
+              </View>
+              <View
+                className={`toggle-btn ${isLandscape ? 'active' : ''}`}
+                onClick={() => setIsLandscape(true)}
+              >
+                <Text>📃 横向</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <Text className="ratio-hint">当前比例：{getAspectRatio()}</Text>
+      </View>
+
       {/* 生成按钮 */}
       <Button
         className={`generate-btn ${isGenerating ? 'loading' : ''}`}
@@ -207,21 +270,40 @@ export default function Index() {
         </View>
       )}
 
-      {/* 生成结果 */}
+      {/* 生成结果 - 缩略图预览 */}
       {generatedImage && (
         <View className="result-section">
-          <Text className="section-title">🎉 生成结果</Text>
-          <View className="image-wrapper">
+          <Text className="section-title">🎉 生成结果（点击查看大图）</Text>
+          <View className="thumbnail-wrapper" onClick={() => setShowPreview(true)}>
             <Image
-              className="generated-image"
+              className="thumbnail-image"
               src={generatedImage}
-              mode="widthFix"
-              showMenuByLongpress
+              mode="aspectFit"
             />
+            <View className="zoom-hint">
+              <Text>🔍 点击查看完整图片</Text>
+            </View>
           </View>
           <Button className="save-btn" onClick={handleSave}>
             💾 保存图片
           </Button>
+        </View>
+      )}
+
+      {/* 图片预览弹窗 */}
+      {showPreview && generatedImage && (
+        <View className="preview-modal" onClick={() => setShowPreview(false)}>
+          <View className="preview-content">
+            <Image
+              className="preview-image"
+              src={generatedImage}
+              mode="aspectFit"
+              showMenuByLongpress
+            />
+            <View className="preview-close">
+              <Text>✕ 点击任意处关闭</Text>
+            </View>
+          </View>
         </View>
       )}
 
