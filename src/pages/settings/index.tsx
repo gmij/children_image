@@ -112,14 +112,36 @@ export default function Settings() {
       <View className="help-section">
         <Text className="help-title">📖 如何获取 API Key？</Text>
         <View className="help-steps">
-          <Text className="help-step">1. 访问 万界方舟 平台</Text>
+          <Text className="help-step">1. 点击下方按钮访问万界方舟平台</Text>
           <Text className="help-step">2. 注册并登录账号</Text>
           <Text className="help-step">3. 进入「个人中心」</Text>
           <Text className="help-step">4. 复制您的 API Key</Text>
         </View>
-        <View className="help-link">
-          <Text className="link-text">🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
+        <View className="promo-info">
+          <Text className="promo-text">🎁 新用户注册赠送 16 元代金券，可生成约 16-20 张图片！</Text>
         </View>
+        <Button 
+          className="register-btn"
+          onClick={() => {
+            const url = 'https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA'
+            if (process.env.TARO_ENV === 'h5') {
+              window.open(url, '_blank')
+            } else {
+              Taro.setClipboardData({
+                data: url,
+                success: () => {
+                  Taro.showToast({
+                    title: '链接已复制，请在浏览器打开',
+                    icon: 'none',
+                    duration: 2000
+                  })
+                }
+              })
+            }
+          }}
+        >
+          🚀 立即注册获取 API Key
+        </Button>
       </View>
 
       <View className="info-section">
