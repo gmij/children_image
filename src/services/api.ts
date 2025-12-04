@@ -162,7 +162,6 @@ export async function generateImage(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
-  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -180,14 +179,7 @@ export async function generateImage(
               }
             ]
           }
-        ],
-        generationConfig: {
-          thinkingMode: true,
-          aspectRatio: aspectRatio,
-          imageGenerationConfig: {
-            quality: 'high_fidelity_4k'
-          }
-        }
+        ]
       })
     })
 
@@ -247,7 +239,6 @@ export async function generateImageNonStream(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
-  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -265,14 +256,7 @@ export async function generateImageNonStream(
               }
             ]
           }
-        ],
-        generationConfig: {
-          thinkingMode: true,
-          aspectRatio: aspectRatio,
-          imageGenerationConfig: {
-            quality: 'high_fidelity_4k'
-          }
-        }
+        ]
       })
     })
 
