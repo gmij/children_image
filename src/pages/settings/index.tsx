@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Input, Button } from '@tarojs/components'
+import { View, Text, Textarea, Button } from '@tarojs/components'
 import { 
   getApiKey, setApiKey, 
   getPaperSizeIndex, setPaperSizeIndex, 
@@ -137,12 +137,13 @@ export default function Settings() {
           </View>
         ) : (
           <View className="api-input-area">
-            <Input
+            <Textarea
               className="api-input"
               placeholder="粘贴您的 API Key"
               value={apiKeyValue}
               onInput={handleInput}
-              password={false}
+              maxlength={-1}
+              autoHeight
             />
             <View className="api-actions">
               <Button className="save-btn" onClick={handleSave}>保存</Button>
