@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Button } from '@tarojs/components'
+import { View, Text, Textarea, Input, Button } from '@tarojs/components'
 import { 
   getApiKey, setApiKey, 
   getPaperSizeIndex, setPaperSizeIndex, 
