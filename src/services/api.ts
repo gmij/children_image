@@ -316,10 +316,20 @@ export async function registerUser(phone: string): Promise<UserApiResponse> {
       })
     })
 
+    // Always try to parse JSON response, even for HTTP errors
+    // The API returns error details in JSON format
     const data = await response.json()
     return data
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : '注册失败，请检查网络连接')
+    console.error('registerUser error:', error)
+    // If it's a network error or JSON parse error, return a structured error response
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '注册失败，请检查网络连接',
+      code: 500,
+      result: null,
+      timestamp: Date.now()
+    }
   }
 }
 
@@ -341,9 +351,19 @@ export async function getUserKey(phone: string): Promise<UserApiResponse> {
       }
     )
 
+    // Always try to parse JSON response, even for HTTP errors
+    // The API returns error details in JSON format
     const data = await response.json()
     return data
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : '查询失败，请检查网络连接')
+    console.error('getUserKey error:', error)
+    // If it's a network error or JSON parse error, return a structured error response
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '查询失败，请检查网络连接',
+      code: 500,
+      result: null,
+      timestamp: Date.now()
+    }
   }
 }
