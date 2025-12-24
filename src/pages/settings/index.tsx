@@ -124,7 +124,7 @@ export default function Settings() {
       // 如果注册失败，检查错误信息
       if (!registerResponse.success) {
         // 检查是否是"用户在其他渠道已存在"的错误
-        if (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
+        if (registerResponse.message && (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在'))) {
           setErrorMessage(registerResponse.message)
           setShowManualEntry(true) // Show manual API key entry section
           Taro.showModal({
@@ -132,31 +132,34 @@ export default function Settings() {
             content: t('otherChannelWarning'),
             showCancel: false
           })
-        } else {
-          // 其他错误，尝试用 getUserKey 查询
-          try {
-            const getUserResponse = await getUserKey(phone.trim())
+          return
+        }
+        
+        // 其他错误，尝试用 getUserKey 查询（可能是已注册用户）
+        try {
+          const getUserResponse = await getUserKey(phone.trim())
+          
+          if (getUserResponse.success && getUserResponse.result?.apiKey) {
+            // 查询成功，保存 API Key
+            setApiKey(getUserResponse.result.apiKey)
+            setApiKeyValue(getUserResponse.result.apiKey)
+            Taro.showToast({
+              title: t('loginSuccess'),
+              icon: 'success',
+              duration: 2000
+            })
             
-            if (getUserResponse.success && getUserResponse.result?.apiKey) {
-              // 查询成功，保存 API Key
-              setApiKey(getUserResponse.result.apiKey)
-              setApiKeyValue(getUserResponse.result.apiKey)
-              Taro.showToast({
-                title: t('loginSuccess'),
-                icon: 'success',
-                duration: 2000
-              })
-              
-              setTimeout(() => {
-                Taro.navigateBack()
-              }, 2000)
-              return
-            } else {
-              setErrorMessage(getUserResponse.message || t('saveFailed'))
-            }
-          } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
+            setTimeout(() => {
+              Taro.navigateBack()
+            }, 2000)
+            return
+          } else {
+            // getUserKey 也失败，显示错误信息
+            setErrorMessage(getUserResponse.message || registerResponse.message || t('saveFailed'))
           }
+        } catch (getUserError) {
+          // getUserKey 请求失败，显示原始注册错误
+          setErrorMessage(registerResponse.message || (getUserError instanceof Error ? getUserError.message : t('saveFailed')))
         }
       }
     } catch (error) {
@@ -236,8 +239,8 @@ export default function Settings() {
               💾 {t('saveSettings')}
             </Button>
             {apiKeyValue && (
-              <Button className='clear-btn' onClick={handleClear}>
-                🗑️ {t('clearButton')}
+              <Button className='logout-btn' onClick={handleClear}>
+                🚪 {t('logoutButton')}
               </Button>
             )}
           </View>
