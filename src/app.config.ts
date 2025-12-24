@@ -1,8 +1,7 @@
 export default defineAppConfig({
   pages: [
     'pages/index/index',
-    'pages/settings/index',
-    'pages/register/index'
+    'pages/settings/index'
   ],
   window: {
     backgroundTextStyle: 'light',

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Button } from '@tarojs/components'
-import { getApiKey, setApiKey } from '../../services/api'
+import { View, Text, Textarea, Button, Input } from '@tarojs/components'
+import { getApiKey, setApiKey, registerUser, getUserKey } from '../../services/api'
 import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
@@ -9,6 +9,9 @@ export default function Settings() {
   const { t } = useTranslation()
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     const savedKey = getApiKey()
@@ -71,8 +74,92 @@ export default function Settings() {
     setShowKey(!showKey)
   }
 
-  const goToRegister = () => {
-    Taro.navigateTo({ url: '/pages/register/index' })
+  // 处理手机号注册/登录
+  const handlePhoneRegister = async () => {
+    if (!phone.trim()) {
+      Taro.showToast({
+        title: t('pleaseInputPhone'),
+        icon: 'none'
+      })
+      return
+    }
+
+    // 简单的手机号验证
+    const phoneRegex = /^1[3-9]\d{9}$/
+    if (!phoneRegex.test(phone.trim())) {
+      Taro.showToast({
+        title: t('pleaseInputValidPhone'),
+        icon: 'none'
+      })
+      return
+    }
+
+    setIsRegistering(true)
+    setErrorMessage('')
+
+    try {
+      // 先尝试注册
+      const registerResponse = await registerUser(phone.trim())
+      
+      if (registerResponse.success && registerResponse.result?.apiKey) {
+        // 注册成功，保存 API Key
+        setApiKey(registerResponse.result.apiKey)
+        setApiKeyValue(registerResponse.result.apiKey)
+        Taro.showToast({
+          title: t('registerSuccess'),
+          icon: 'success',
+          duration: 2000
+        })
+        
+        // 延迟返回
+        setTimeout(() => {
+          Taro.navigateBack()
+        }, 2000)
+        return
+      }
+
+      // 如果注册失败，检查错误信息
+      if (!registerResponse.success) {
+        // 检查是否是"用户在其他渠道已存在"的错误
+        if (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
+          setErrorMessage(registerResponse.message)
+          Taro.showModal({
+            title: t('tip'),
+            content: t('otherChannelWarning'),
+            showCancel: false
+          })
+        } else {
+          // 其他错误，尝试用 getUserKey 查询
+          try {
+            const getUserResponse = await getUserKey(phone.trim())
+            
+            if (getUserResponse.success && getUserResponse.result?.apiKey) {
+              // 查询成功，保存 API Key
+              setApiKey(getUserResponse.result.apiKey)
+              setApiKeyValue(getUserResponse.result.apiKey)
+              Taro.showToast({
+                title: t('loginSuccess'),
+                icon: 'success',
+                duration: 2000
+              })
+              
+              setTimeout(() => {
+                Taro.navigateBack()
+              }, 2000)
+              return
+            } else {
+              setErrorMessage(getUserResponse.message || t('saveFailed'))
+            }
+          } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
+          }
+        }
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   return (
@@ -84,6 +171,39 @@ export default function Settings() {
         </Text>
       </View>
 
+      {/* Phone Registration Section */}
+      <View className='settings-section'>
+        <Text className='section-title'>📱 {t('phoneLabel')}</Text>
+        <Text className='section-desc'>{t('registerHelp1')}</Text>
+        
+        <View className='input-wrapper'>
+          <Input
+            className='phone-input'
+            type='number'
+            maxlength={11}
+            placeholder={t('phonePlaceholder')}
+            value={phone}
+            onInput={(e) => setPhone(e.detail.value)}
+            disabled={isRegistering}
+          />
+        </View>
+
+        <Button 
+          className={`register-btn ${isRegistering ? 'loading' : ''}`}
+          onClick={handlePhoneRegister}
+          disabled={isRegistering}
+        >
+          {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
+        </Button>
+
+        {errorMessage && (
+          <View className='error-message'>
+            <Text className='error-text'>⚠️ {errorMessage}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Manual API Key Section */}
       <View className='settings-section'>
         <View className='section-header'>
           <Text className='section-title'>{t('apiKeyLabel')}</Text>
@@ -91,6 +211,7 @@ export default function Settings() {
             <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
           </View>
         </View>
+        <Text className='section-desc'>{t('registerHelp3')}</Text>
 
         <View className='input-wrapper'>
           <Textarea
@@ -126,9 +247,6 @@ export default function Settings() {
         <View className='help-link'>
           <Text className='link-text'>🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
         </View>
-        <Button className='register-link-btn' onClick={goToRegister}>
-          🆕 {t('newUserQuickRegister')}
-        </Button>
       </View>
 
       <View className='info-section'>

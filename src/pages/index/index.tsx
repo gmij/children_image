@@ -32,11 +32,6 @@ export default function Index() {
     Taro.navigateTo({ url: '/pages/settings/index' })
   }
 
-  // 跳转到注册页面
-  const goToRegister = () => {
-    Taro.navigateTo({ url: '/pages/register/index' })
-  }
-
   // 生成图片
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -148,13 +143,8 @@ export default function Index() {
 
       {/* API Key 提示 */}
       {!hasKey && (
-        <View className='api-tip-container'>
-          <View className='api-tip' onClick={goToSettings}>
-            <Text className='tip-text'>⚠️ {t('apiKeyWarning')}</Text>
-          </View>
-          <View className='register-tip' onClick={goToRegister}>
-            <Text className='tip-text'>🆕 {t('newUserRegister')}</Text>
-          </View>
+        <View className='api-tip' onClick={goToSettings}>
+          <Text className='tip-text'>⚠️ {t('apiKeyWarning')}</Text>
         </View>
       )}
 
