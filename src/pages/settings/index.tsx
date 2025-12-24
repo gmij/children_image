@@ -12,11 +12,14 @@ export default function Settings() {
   const [phone, setPhone] = useState('')
   const [isRegistering, setIsRegistering] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showManualEntry, setShowManualEntry] = useState(false) // Track if we should show manual API key entry
 
   useEffect(() => {
     const savedKey = getApiKey()
     if (savedKey) {
       setApiKeyValue(savedKey)
+      // If user already has an API key, show manual entry section
+      setShowManualEntry(true)
     }
   }, [])
 
@@ -123,6 +126,7 @@ export default function Settings() {
         // 检查是否是"用户在其他渠道已存在"的错误
         if (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
           setErrorMessage(registerResponse.message)
+          setShowManualEntry(true) // Show manual API key entry section
           Taro.showModal({
             title: t('tip'),
             content: t('otherChannelWarning'),
@@ -171,70 +175,74 @@ export default function Settings() {
         </Text>
       </View>
 
-      {/* Phone Registration Section */}
-      <View className='settings-section'>
-        <Text className='section-title'>📱 {t('phoneLabel')}</Text>
-        <Text className='section-desc'>{t('registerHelp1')}</Text>
-        
-        <View className='input-wrapper'>
-          <Input
-            className='phone-input'
-            type='number'
-            maxlength={11}
-            placeholder={t('phonePlaceholder')}
-            value={phone}
-            onInput={(e) => setPhone(e.detail.value)}
+      {/* Phone Registration Section - Always show if no manual entry needed */}
+      {!showManualEntry && (
+        <View className='settings-section'>
+          <Text className='section-title'>📱 {t('phoneLabel')}</Text>
+          <Text className='section-desc'>{t('registerHelp1')}</Text>
+          
+          <View className='input-wrapper'>
+            <Input
+              className='phone-input'
+              type='number'
+              maxlength={11}
+              placeholder={t('phonePlaceholder')}
+              value={phone}
+              onInput={(e) => setPhone(e.detail.value)}
+              disabled={isRegistering}
+            />
+          </View>
+
+          <Button 
+            className={`register-btn ${isRegistering ? 'loading' : ''}`}
+            onClick={handlePhoneRegister}
             disabled={isRegistering}
-          />
-        </View>
-
-        <Button 
-          className={`register-btn ${isRegistering ? 'loading' : ''}`}
-          onClick={handlePhoneRegister}
-          disabled={isRegistering}
-        >
-          {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
-        </Button>
-
-        {errorMessage && (
-          <View className='error-message'>
-            <Text className='error-text'>⚠️ {errorMessage}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Manual API Key Section */}
-      <View className='settings-section'>
-        <View className='section-header'>
-          <Text className='section-title'>{t('apiKeyLabel')}</Text>
-          <View className='toggle-visibility' onClick={toggleShowKey}>
-            <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
-          </View>
-        </View>
-        <Text className='section-desc'>{t('registerHelp3')}</Text>
-
-        <View className='input-wrapper'>
-          <Textarea
-            className='api-input'
-            placeholder={t('apiKeyPlaceholder')}
-            value={displayValue}
-            onInput={handleInput}
-            maxlength={-1}
-            disabled={!showKey && (apiKeyValue?.length || 0) > 0}
-          />
-        </View>
-
-        <View className='button-group'>
-          <Button className='save-btn' onClick={handleSave}>
-            💾 {t('saveSettings')}
+          >
+            {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
           </Button>
-          {apiKeyValue && (
-            <Button className='clear-btn' onClick={handleClear}>
-              🗑️ {t('clearButton')}
-            </Button>
+
+          {errorMessage && (
+            <View className='error-message'>
+              <Text className='error-text'>⚠️ {errorMessage}</Text>
+            </View>
           )}
         </View>
-      </View>
+      )}
+
+      {/* Manual API Key Section - Only show after "other channel" error or if user already has a key */}
+      {showManualEntry && (
+        <View className='settings-section'>
+          <View className='section-header'>
+            <Text className='section-title'>{t('apiKeyLabel')}</Text>
+            <View className='toggle-visibility' onClick={toggleShowKey}>
+              <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
+            </View>
+          </View>
+          <Text className='section-desc'>{t('manualEntryDesc')}</Text>
+
+          <View className='input-wrapper'>
+            <Textarea
+              className='api-input'
+              placeholder={t('apiKeyPlaceholder')}
+              value={displayValue}
+              onInput={handleInput}
+              maxlength={-1}
+              disabled={!showKey && (apiKeyValue?.length || 0) > 0}
+            />
+          </View>
+
+          <View className='button-group'>
+            <Button className='save-btn' onClick={handleSave}>
+              💾 {t('saveSettings')}
+            </Button>
+            {apiKeyValue && (
+              <Button className='clear-btn' onClick={handleClear}>
+                🗑️ {t('clearButton')}
+              </Button>
+            )}
+          </View>
+        </View>
+      )}
 
       <View className='help-section'>
         <Text className='help-title'>📖 {t('helpTitle')}</Text>
