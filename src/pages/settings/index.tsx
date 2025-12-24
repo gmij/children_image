@@ -244,19 +244,6 @@ export default function Settings() {
         </View>
       )}
 
-      <View className='help-section'>
-        <Text className='help-title'>📖 {t('helpTitle')}</Text>
-        <View className='help-steps'>
-          <Text className='help-step'>{t('helpStep1')}</Text>
-          <Text className='help-step'>{t('helpStep2')}</Text>
-          <Text className='help-step'>{t('helpStep3')}</Text>
-          <Text className='help-step'>{t('helpStep4')}</Text>
-        </View>
-        <View className='help-link'>
-          <Text className='link-text'>🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
-        </View>
-      </View>
-
       <View className='info-section'>
         <Text className='info-title'>ℹ️ {t('infoTitle')}</Text>
         <Text className='info-text'>
