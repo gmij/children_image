@@ -128,22 +128,22 @@ export default function Register() {
   }
 
   return (
-    <View className="register-container">
-      <View className="register-header">
-        <Text className="register-title">📱 新用户注册/登录</Text>
-        <Text className="register-desc">
+    <View className='register-container'>
+      <View className='register-header'>
+        <Text className='register-title'>📱 新用户注册/登录</Text>
+        <Text className='register-desc'>
           输入手机号即可快速注册或登录
         </Text>
       </View>
 
       {/* 手机号输入区 */}
-      <View className="register-section">
-        <Text className="section-title">手机号码</Text>
+      <View className='register-section'>
+        <Text className='section-title'>手机号码</Text>
         <Input
-          className="phone-input"
-          type="number"
+          className='phone-input'
+          type='number'
           maxlength={11}
-          placeholder="请输入您的手机号"
+          placeholder='请输入您的手机号'
           value={phone}
           onInput={(e) => setPhone(e.detail.value)}
           disabled={isLoading}
@@ -160,35 +160,35 @@ export default function Register() {
 
       {/* 错误信息 */}
       {errorMessage && (
-        <View className="error-section">
-          <Text className="error-text">⚠️ {errorMessage}</Text>
+        <View className='error-section'>
+          <Text className='error-text'>⚠️ {errorMessage}</Text>
         </View>
       )}
 
       {/* 手动输入 API Key（当用户已在其他渠道注册时显示） */}
       {showManualEntry && (
-        <View className="manual-entry-section">
-          <Text className="section-title">手动输入 API Key</Text>
-          <Text className="manual-desc">
+        <View className='manual-entry-section'>
+          <Text className='section-title'>手动输入 API Key</Text>
+          <Text className='manual-desc'>
             您已在其它渠道注册过，没有赠送额度。请输入您的 API Key 继续使用
           </Text>
           <Input
-            className="apikey-input"
-            placeholder="请输入您的 API Key"
+            className='apikey-input'
+            placeholder='请输入您的 API Key'
             value={manualApiKey}
             onInput={(e) => setManualApiKey(e.detail.value)}
           />
-          <Button className="manual-save-btn" onClick={handleManualSave}>
+          <Button className='manual-save-btn' onClick={handleManualSave}>
             💾 保存并继续
           </Button>
         </View>
       )}
 
       {/* 帮助说明 */}
-      <View className="help-section">
-        <Text className="help-title">📖 注册说明</Text>
-        <View className="help-content">
-          <Text className="help-text">
+      <View className='help-section'>
+        <Text className='help-title'>📖 注册说明</Text>
+        <View className='help-content'>
+          <Text className='help-text'>
             • 首次使用：输入手机号即可快速注册{'\n'}
             • 已有账号：输入手机号直接登录{'\n'}
             • 其他渠道注册：需手动输入 API Key{'\n'}
@@ -198,9 +198,9 @@ export default function Register() {
       </View>
 
       {/* 已有 API Key 按钮 */}
-      <View className="alternative-section">
-        <Text className="alternative-text">已有 API Key？</Text>
-        <Button className="settings-link-btn" onClick={goToSettings}>
+      <View className='alternative-section'>
+        <Text className='alternative-text'>已有 API Key？</Text>
+        <Button className='settings-link-btn' onClick={goToSettings}>
           直接配置 →
         </Button>
       </View>

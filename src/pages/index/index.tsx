@@ -89,7 +89,7 @@ export default function Index() {
   }
 
   // 使用示例提示词
-  const useExample = (example: string) => {
+  const selectExample = (example: string) => {
     setPrompt(example)
   }
 
@@ -134,53 +134,53 @@ export default function Index() {
   }
 
   return (
-    <View className="container">
+    <View className='container'>
       {/* 头部标题 */}
-      <View className="header">
-        <Text className="title">✨ AI 手抄报生成器</Text>
-        <Text className="subtitle">为宝贝生成精美的手抄报</Text>
-        <View className="settings-btn" onClick={goToSettings}>
-          <Text className="settings-icon">⚙️</Text>
+      <View className='header'>
+        <Text className='title'>✨ AI 手抄报生成器</Text>
+        <Text className='subtitle'>为宝贝生成精美的手抄报</Text>
+        <View className='settings-btn' onClick={goToSettings}>
+          <Text className='settings-icon'>⚙️</Text>
         </View>
       </View>
 
       {/* API Key 提示 */}
       {!hasKey && (
-        <View className="api-tip-container">
-          <View className="api-tip" onClick={goToSettings}>
-            <Text className="tip-text">⚠️ 请先配置 API Key 才能使用</Text>
+        <View className='api-tip-container'>
+          <View className='api-tip' onClick={goToSettings}>
+            <Text className='tip-text'>⚠️ 请先配置 API Key 才能使用</Text>
           </View>
-          <View className="register-tip" onClick={goToRegister}>
-            <Text className="tip-text">🆕 新用户？点击快速注册</Text>
+          <View className='register-tip' onClick={goToRegister}>
+            <Text className='tip-text'>🆕 新用户？点击快速注册</Text>
           </View>
         </View>
       )}
 
       {/* 输入区域 */}
-      <View className="input-section">
-        <Text className="section-title">📝 输入手抄报主题</Text>
+      <View className='input-section'>
+        <Text className='section-title'>📝 输入手抄报主题</Text>
         <Textarea
-          className="prompt-input"
-          placeholder="例如：春天来了，花儿开放"
+          className='prompt-input'
+          placeholder='例如：春天来了，花儿开放'
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
           disabled={isGenerating}
         />
-        <View className="char-count">
+        <View className='char-count'>
           <Text>{prompt.length}/200</Text>
         </View>
       </View>
 
       {/* 示例提示词 */}
-      <View className="examples-section">
-        <Text className="section-title">💡 试试这些主题</Text>
-        <View className="examples">
+      <View className='examples-section'>
+        <Text className='section-title'>💡 试试这些主题</Text>
+        <View className='examples'>
           {EXAMPLE_PROMPTS.map((example, index) => (
             <View
               key={index}
-              className="example-tag"
-              onClick={() => useExample(example)}
+              className='example-tag'
+              onClick={() => selectExample(example)}
             >
               <Text>{example}</Text>
             </View>
@@ -199,40 +199,40 @@ export default function Index() {
 
       {/* 加载状态 */}
       {isGenerating && (
-        <View className="loading-section">
-          <View className="loading-spinner" />
-          <Text className="loading-text">AI 正在为宝贝创作手抄报，请稍候...</Text>
+        <View className='loading-section'>
+          <View className='loading-spinner' />
+          <Text className='loading-text'>AI 正在为宝贝创作手抄报，请稍候...</Text>
         </View>
       )}
 
       {/* 错误提示 */}
       {error && (
-        <View className="error-section">
-          <Text className="error-text">❌ {error}</Text>
+        <View className='error-section'>
+          <Text className='error-text'>❌ {error}</Text>
         </View>
       )}
 
       {/* 生成结果 */}
       {generatedImage && (
-        <View className="result-section">
-          <Text className="section-title">🎉 生成结果</Text>
-          <View className="image-wrapper">
+        <View className='result-section'>
+          <Text className='section-title'>🎉 生成结果</Text>
+          <View className='image-wrapper'>
             <Image
-              className="generated-image"
+              className='generated-image'
               src={generatedImage}
-              mode="widthFix"
+              mode='widthFix'
               showMenuByLongpress
             />
           </View>
-          <Button className="save-btn" onClick={handleSave}>
+          <Button className='save-btn' onClick={handleSave}>
             💾 保存图片
           </Button>
         </View>
       )}
 
       {/* 底部说明 */}
-      <View className="footer">
-        <Text className="footer-text">
+      <View className='footer'>
+        <Text className='footer-text'>
           Powered by Gemini 3 Pro | 专为幼儿园妈妈设计 ❤️
         </Text>
       </View>

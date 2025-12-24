@@ -74,26 +74,26 @@ export default function Settings() {
   }
 
   return (
-    <View className="settings-container">
-      <View className="settings-header">
-        <Text className="settings-title">🔐 API 配置</Text>
-        <Text className="settings-desc">
+    <View className='settings-container'>
+      <View className='settings-header'>
+        <Text className='settings-title'>🔐 API 配置</Text>
+        <Text className='settings-desc'>
           配置万界方舟 API Key 以使用 Gemini 3 Pro 图像生成服务
         </Text>
       </View>
 
-      <View className="settings-section">
-        <View className="section-header">
-          <Text className="section-title">API Key</Text>
-          <View className="toggle-visibility" onClick={toggleShowKey}>
+      <View className='settings-section'>
+        <View className='section-header'>
+          <Text className='section-title'>API Key</Text>
+          <View className='toggle-visibility' onClick={toggleShowKey}>
             <Text>{showKey ? '🙈 隐藏' : '👁️ 显示'}</Text>
           </View>
         </View>
 
-        <View className="input-wrapper">
+        <View className='input-wrapper'>
           <Textarea
-            className="api-input"
-            placeholder="请输入您的 API Key"
+            className='api-input'
+            placeholder='请输入您的 API Key'
             value={displayValue}
             onInput={handleInput}
             maxlength={-1}
@@ -101,37 +101,37 @@ export default function Settings() {
           />
         </View>
 
-        <View className="button-group">
-          <Button className="save-btn" onClick={handleSave}>
+        <View className='button-group'>
+          <Button className='save-btn' onClick={handleSave}>
             💾 保存设置
           </Button>
           {apiKeyValue && (
-            <Button className="clear-btn" onClick={handleClear}>
+            <Button className='clear-btn' onClick={handleClear}>
               🗑️ 清除
             </Button>
           )}
         </View>
       </View>
 
-      <View className="help-section">
-        <Text className="help-title">📖 如何获取 API Key？</Text>
-        <View className="help-steps">
-          <Text className="help-step">1. 访问 万界方舟 平台</Text>
-          <Text className="help-step">2. 注册并登录账号</Text>
-          <Text className="help-step">3. 进入「个人中心」</Text>
-          <Text className="help-step">4. 复制您的 API Key</Text>
+      <View className='help-section'>
+        <Text className='help-title'>📖 如何获取 API Key？</Text>
+        <View className='help-steps'>
+          <Text className='help-step'>1. 访问 万界方舟 平台</Text>
+          <Text className='help-step'>2. 注册并登录账号</Text>
+          <Text className='help-step'>3. 进入「个人中心」</Text>
+          <Text className='help-step'>4. 复制您的 API Key</Text>
         </View>
-        <View className="help-link">
-          <Text className="link-text">🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
+        <View className='help-link'>
+          <Text className='link-text'>🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
         </View>
-        <Button className="register-link-btn" onClick={goToRegister}>
+        <Button className='register-link-btn' onClick={goToRegister}>
           🆕 新用户快速注册
         </Button>
       </View>
 
-      <View className="info-section">
-        <Text className="info-title">ℹ️ 说明</Text>
-        <Text className="info-text">
+      <View className='info-section'>
+        <Text className='info-title'>ℹ️ 说明</Text>
+        <Text className='info-text'>
           • API Key 仅保存在您的设备本地{'\n'}
           • 请妥善保管，不要泄露给他人{'\n'}
           • 使用的模型：gemini-3-pro-image-preview
