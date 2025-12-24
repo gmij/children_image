@@ -102,10 +102,13 @@ export default function Settings() {
 
     try {
       // 先尝试注册
+      console.log('Attempting registration with phone:', phone.trim())
       const registerResponse = await registerUser(phone.trim())
+      console.log('Register response:', registerResponse)
       
       if (registerResponse.success && registerResponse.result?.apiKey) {
         // 注册成功，保存 API Key
+        console.log('Registration successful')
         setApiKey(registerResponse.result.apiKey)
         setApiKeyValue(registerResponse.result.apiKey)
         Taro.showToast({
@@ -123,8 +126,10 @@ export default function Settings() {
 
       // 如果注册失败，检查错误信息
       if (!registerResponse.success) {
+        console.log('Registration failed:', registerResponse.message)
         // 检查是否是"用户在其他渠道已存在"的错误
         if (registerResponse.message && (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在'))) {
+          console.log('User registered in other channel')
           setErrorMessage(registerResponse.message)
           setShowManualEntry(true) // Show manual API key entry section
           Taro.showModal({
@@ -136,11 +141,14 @@ export default function Settings() {
         }
         
         // 其他错误，尝试用 getUserKey 查询（可能是已注册用户）
+        console.log('Trying getUserKey as fallback')
         try {
           const getUserResponse = await getUserKey(phone.trim())
+          console.log('GetUserKey response:', getUserResponse)
           
           if (getUserResponse.success && getUserResponse.result?.apiKey) {
             // 查询成功，保存 API Key
+            console.log('GetUserKey successful')
             setApiKey(getUserResponse.result.apiKey)
             setApiKeyValue(getUserResponse.result.apiKey)
             Taro.showToast({
@@ -155,14 +163,17 @@ export default function Settings() {
             return
           } else {
             // getUserKey 也失败，显示错误信息
+            console.log('GetUserKey failed:', getUserResponse.message)
             setErrorMessage(getUserResponse.message || registerResponse.message || t('saveFailed'))
           }
         } catch (getUserError) {
           // getUserKey 请求失败，显示原始注册错误
+          console.error('GetUserKey error:', getUserError)
           setErrorMessage(registerResponse.message || (getUserError instanceof Error ? getUserError.message : t('saveFailed')))
         }
       }
     } catch (error) {
+      console.error('Registration error:', error)
       setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
     } finally {
       setIsRegistering(false)
