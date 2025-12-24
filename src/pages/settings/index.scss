@@ -150,6 +150,23 @@
   word-break: break-all;
 }
 
+.register-link-btn {
+  width: 100%;
+  height: 44px;
+  margin-top: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 22px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
 .info-section {
   background: #fff8e1;
   border-radius: 16px;

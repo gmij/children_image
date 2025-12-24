@@ -69,6 +69,10 @@ export default function Settings() {
     setShowKey(!showKey)
   }
 
+  const goToRegister = () => {
+    Taro.navigateTo({ url: '/pages/register/index' })
+  }
+
   return (
     <View className="settings-container">
       <View className="settings-header">
@@ -120,6 +124,9 @@ export default function Settings() {
         <View className="help-link">
           <Text className="link-text">🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
         </View>
+        <Button className="register-link-btn" onClick={goToRegister}>
+          🆕 新用户快速注册
+        </Button>
       </View>
 
       <View className="info-section">
