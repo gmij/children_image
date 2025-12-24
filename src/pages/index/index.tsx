@@ -2,23 +2,25 @@ import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
 import { generateImage, hasApiKey } from '../../services/api'
+import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
-// 示例提示词
-const EXAMPLE_PROMPTS = [
-  '春天来了，花儿开放',
-  '我爱我的家',
-  '小动物们的快乐一天',
-  '保护地球，爱护环境',
-  '中秋节快乐',
-]
-
 export default function Index() {
+  const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState('')
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
+
+  // 示例提示词
+  const EXAMPLE_PROMPTS = [
+    t('exampleSpring'),
+    t('exampleHome'),
+    t('exampleAnimals'),
+    t('exampleEarth'),
+    t('exampleFestival'),
+  ]
 
   // 检查 API Key 配置状态
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function Index() {
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       Taro.showToast({
-        title: '请输入提示词',
+        title: t('pleaseInputPrompt'),
         icon: 'none'
       })
       return
@@ -47,9 +49,9 @@ export default function Index() {
 
     if (!hasApiKey()) {
       Taro.showModal({
-        title: '提示',
-        content: '请先配置 API Key',
-        confirmText: '去配置',
+        title: t('tip'),
+        content: t('pleaseConfigApiKey'),
+        confirmText: t('goToConfig'),
         success: (res) => {
           if (res.confirm) {
             goToSettings()
@@ -73,7 +75,7 @@ export default function Index() {
           setGeneratedImage(imageUrl)
           setIsGenerating(false)
           Taro.showToast({
-            title: '生成成功！',
+            title: t('generateSuccess'),
             icon: 'success'
           })
         },
@@ -83,7 +85,7 @@ export default function Index() {
         }
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败')
+      setError(err instanceof Error ? err.message : t('saveFailed'))
       setIsGenerating(false)
     }
   }
@@ -104,12 +106,12 @@ export default function Index() {
         link.download = `handwritten_newspaper_${Date.now()}.png`
         link.click()
         Taro.showToast({
-          title: '已下载！',
+          title: t('saved'),
           icon: 'success'
         })
       } catch {
         Taro.showToast({
-          title: '下载失败',
+          title: t('saveFailed'),
           icon: 'none'
         })
       }
@@ -119,13 +121,13 @@ export default function Index() {
         filePath: generatedImage,
         success: () => {
           Taro.showToast({
-            title: '保存成功！',
+            title: t('saved'),
             icon: 'success'
           })
         },
         fail: () => {
           Taro.showToast({
-            title: '保存失败',
+            title: t('saveFailed'),
             icon: 'none'
           })
         }
@@ -137,8 +139,8 @@ export default function Index() {
     <View className='container'>
       {/* 头部标题 */}
       <View className='header'>
-        <Text className='title'>✨ AI 手抄报生成器</Text>
-        <Text className='subtitle'>为宝贝生成精美的手抄报</Text>
+        <Text className='title'>✨ {t('appTitle')}</Text>
+        <Text className='subtitle'>{t('appSubtitle')}</Text>
         <View className='settings-btn' onClick={goToSettings}>
           <Text className='settings-icon'>⚙️</Text>
         </View>
@@ -148,20 +150,20 @@ export default function Index() {
       {!hasKey && (
         <View className='api-tip-container'>
           <View className='api-tip' onClick={goToSettings}>
-            <Text className='tip-text'>⚠️ 请先配置 API Key 才能使用</Text>
+            <Text className='tip-text'>⚠️ {t('apiKeyWarning')}</Text>
           </View>
           <View className='register-tip' onClick={goToRegister}>
-            <Text className='tip-text'>🆕 新用户？点击快速注册</Text>
+            <Text className='tip-text'>🆕 {t('newUserRegister')}</Text>
           </View>
         </View>
       )}
 
       {/* 输入区域 */}
       <View className='input-section'>
-        <Text className='section-title'>📝 输入手抄报主题</Text>
+        <Text className='section-title'>📝 {t('inputPromptTitle')}</Text>
         <Textarea
           className='prompt-input'
-          placeholder='例如：春天来了，花儿开放'
+          placeholder={t('inputPromptPlaceholder')}
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -174,7 +176,7 @@ export default function Index() {
 
       {/* 示例提示词 */}
       <View className='examples-section'>
-        <Text className='section-title'>💡 试试这些主题</Text>
+        <Text className='section-title'>💡 {t('examplesTitle')}</Text>
         <View className='examples'>
           {EXAMPLE_PROMPTS.map((example, index) => (
             <View
@@ -194,28 +196,28 @@ export default function Index() {
         onClick={handleGenerate}
         disabled={isGenerating}
       >
-        {isGenerating ? '🎨 正在生成中...' : '🚀 生成手抄报'}
+        {isGenerating ? `🎨 ${t('generating')}` : `🚀 ${t('generateButton')}`}
       </Button>
 
       {/* 加载状态 */}
       {isGenerating && (
         <View className='loading-section'>
           <View className='loading-spinner' />
-          <Text className='loading-text'>AI 正在为宝贝创作手抄报，请稍候...</Text>
+          <Text className='loading-text'>{t('loadingText')}</Text>
         </View>
       )}
 
       {/* 错误提示 */}
       {error && (
         <View className='error-section'>
-          <Text className='error-text'>❌ {error}</Text>
+          <Text className='error-text'>{t('errorPrefix')}{error}</Text>
         </View>
       )}
 
       {/* 生成结果 */}
       {generatedImage && (
         <View className='result-section'>
-          <Text className='section-title'>🎉 生成结果</Text>
+          <Text className='section-title'>🎉 {t('resultTitle')}</Text>
           <View className='image-wrapper'>
             <Image
               className='generated-image'
@@ -225,7 +227,7 @@ export default function Index() {
             />
           </View>
           <Button className='save-btn' onClick={handleSave}>
-            💾 保存图片
+            💾 {t('saveButton')}
           </Button>
         </View>
       )}
@@ -233,7 +235,7 @@ export default function Index() {
       {/* 底部说明 */}
       <View className='footer'>
         <Text className='footer-text'>
-          Powered by Gemini 3 Pro | 专为幼儿园妈妈设计 ❤️
+          {t('footerText')}
         </Text>
       </View>
     </View>

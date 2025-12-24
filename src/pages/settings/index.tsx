@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Textarea, Button } from '@tarojs/components'
 import { getApiKey, setApiKey } from '../../services/api'
+import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
 export default function Settings() {
+  const { t } = useTranslation()
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [showKey, setShowKey] = useState(false)
 
@@ -30,7 +32,7 @@ export default function Settings() {
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
       Taro.showToast({
-        title: '请输入 API Key',
+        title: t('pleaseInputApiKey'),
         icon: 'none'
       })
       return
@@ -38,7 +40,7 @@ export default function Settings() {
 
     setApiKey(apiKeyValue.trim())
     Taro.showToast({
-      title: '保存成功！',
+      title: t('generateSuccess'),
       icon: 'success'
     })
 
@@ -50,14 +52,14 @@ export default function Settings() {
 
   const handleClear = () => {
     Taro.showModal({
-      title: '确认清除',
-      content: '确定要清除 API Key 吗？',
+      title: t('confirmClear'),
+      content: t('confirmClearContent'),
       success: (res) => {
         if (res.confirm) {
           setApiKey('')
           setApiKeyValue('')
           Taro.showToast({
-            title: '已清除',
+            title: t('cleared'),
             icon: 'success'
           })
         }
@@ -76,24 +78,24 @@ export default function Settings() {
   return (
     <View className='settings-container'>
       <View className='settings-header'>
-        <Text className='settings-title'>🔐 API 配置</Text>
+        <Text className='settings-title'>🔐 {t('settingsTitle')}</Text>
         <Text className='settings-desc'>
-          配置万界方舟 API Key 以使用 Gemini 3 Pro 图像生成服务
+          {t('settingsDesc')}
         </Text>
       </View>
 
       <View className='settings-section'>
         <View className='section-header'>
-          <Text className='section-title'>API Key</Text>
+          <Text className='section-title'>{t('apiKeyLabel')}</Text>
           <View className='toggle-visibility' onClick={toggleShowKey}>
-            <Text>{showKey ? '🙈 隐藏' : '👁️ 显示'}</Text>
+            <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
           </View>
         </View>
 
         <View className='input-wrapper'>
           <Textarea
             className='api-input'
-            placeholder='请输入您的 API Key'
+            placeholder={t('apiKeyPlaceholder')}
             value={displayValue}
             onInput={handleInput}
             maxlength={-1}
@@ -103,38 +105,38 @@ export default function Settings() {
 
         <View className='button-group'>
           <Button className='save-btn' onClick={handleSave}>
-            💾 保存设置
+            💾 {t('saveSettings')}
           </Button>
           {apiKeyValue && (
             <Button className='clear-btn' onClick={handleClear}>
-              🗑️ 清除
+              🗑️ {t('clearButton')}
             </Button>
           )}
         </View>
       </View>
 
       <View className='help-section'>
-        <Text className='help-title'>📖 如何获取 API Key？</Text>
+        <Text className='help-title'>📖 {t('helpTitle')}</Text>
         <View className='help-steps'>
-          <Text className='help-step'>1. 访问 万界方舟 平台</Text>
-          <Text className='help-step'>2. 注册并登录账号</Text>
-          <Text className='help-step'>3. 进入「个人中心」</Text>
-          <Text className='help-step'>4. 复制您的 API Key</Text>
+          <Text className='help-step'>{t('helpStep1')}</Text>
+          <Text className='help-step'>{t('helpStep2')}</Text>
+          <Text className='help-step'>{t('helpStep3')}</Text>
+          <Text className='help-step'>{t('helpStep4')}</Text>
         </View>
         <View className='help-link'>
           <Text className='link-text'>🔗 https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA</Text>
         </View>
         <Button className='register-link-btn' onClick={goToRegister}>
-          🆕 新用户快速注册
+          🆕 {t('newUserQuickRegister')}
         </Button>
       </View>
 
       <View className='info-section'>
-        <Text className='info-title'>ℹ️ 说明</Text>
+        <Text className='info-title'>ℹ️ {t('infoTitle')}</Text>
         <Text className='info-text'>
-          • API Key 仅保存在您的设备本地{'\n'}
-          • 请妥善保管，不要泄露给他人{'\n'}
-          • 使用的模型：gemini-3-pro-image-preview
+          {t('infoText1')}{'\n'}
+          {t('infoText2')}{'\n'}
+          {t('infoText3')}
         </Text>
       </View>
     </View>
