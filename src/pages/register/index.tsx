@@ -58,13 +58,13 @@ export default function Register() {
       // 如果注册失败，检查错误信息
       if (!registerResponse.success) {
         // 检查是否是"用户在其他渠道已存在"的错误
-        if (registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
+        if (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
           // 显示手动输入 API Key 的选项
           setErrorMessage(registerResponse.message)
           setShowManualEntry(true)
           Taro.showModal({
             title: '提示',
-            content: '您已在其它渠道注册过，没有赠送额度。请手动输入您的 API Key',
+            content: '您已在其他渠道注册过，没有赠送额度。请手动输入您的 API Key',
             showCancel: false
           })
         } else {
@@ -170,7 +170,7 @@ export default function Register() {
         <View className='manual-entry-section'>
           <Text className='section-title'>手动输入 API Key</Text>
           <Text className='manual-desc'>
-            您已在其它渠道注册过，没有赠送额度。请输入您的 API Key 继续使用
+            您已在其他渠道注册过，没有赠送额度。请输入您的 API Key 继续使用
           </Text>
           <Input
             className='apikey-input'
