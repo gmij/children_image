@@ -83,6 +83,7 @@ export const translations = {
     registerSuccess: 'Registration successful!',
     loginSuccess: 'Login successful!',
     otherChannelWarning: 'You have registered in another channel, no free credits available. Please enter your API Key manually',
+    networkError: 'Network connection failed, please check your network or try using the Mini Program',
     
     // Common
     cancel: 'Cancel',
@@ -167,6 +168,7 @@ export const translations = {
     registerSuccess: '注册成功！',
     loginSuccess: '登录成功！',
     otherChannelWarning: '您已在其他渠道注册过，没有赠送额度。请手动输入您的 API Key',
+    networkError: '网络连接失败，请检查网络或尝试使用小程序访问',
     
     // Common
     cancel: '取消',

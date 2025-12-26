@@ -322,10 +322,20 @@ export async function registerUser(phone: string): Promise<UserApiResponse> {
     return data
   } catch (error) {
     console.error('registerUser error:', error)
+    
+    // Check if it's a CORS or network error
+    const errorMessage = error instanceof Error ? error.message : '注册失败'
+    const isCorsOrNetworkError = errorMessage.includes('fetch') || 
+                                  errorMessage.includes('CORS') || 
+                                  errorMessage.includes('Network') ||
+                                  errorMessage.includes('Failed to fetch')
+    
     // If it's a network error or JSON parse error, return a structured error response
     return {
       success: false,
-      message: error instanceof Error ? error.message : '注册失败，请检查网络连接',
+      message: isCorsOrNetworkError 
+        ? '网络连接失败，请检查网络或尝试使用小程序访问'
+        : errorMessage,
       code: 500,
       result: null,
       timestamp: Date.now()
@@ -357,10 +367,20 @@ export async function getUserKey(phone: string): Promise<UserApiResponse> {
     return data
   } catch (error) {
     console.error('getUserKey error:', error)
+    
+    // Check if it's a CORS or network error
+    const errorMessage = error instanceof Error ? error.message : '查询失败'
+    const isCorsOrNetworkError = errorMessage.includes('fetch') || 
+                                  errorMessage.includes('CORS') || 
+                                  errorMessage.includes('Network') ||
+                                  errorMessage.includes('Failed to fetch')
+    
     // If it's a network error or JSON parse error, return a structured error response
     return {
       success: false,
-      message: error instanceof Error ? error.message : '查询失败，请检查网络连接',
+      message: isCorsOrNetworkError 
+        ? '网络连接失败，请检查网络或尝试使用小程序访问'
+        : errorMessage,
       code: 500,
       result: null,
       timestamp: Date.now()
