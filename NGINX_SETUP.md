@@ -68,14 +68,6 @@ curl http://fangzhou.gmij.win
 - **无需 SSL 证书**: gmij.win 服务器不需要配置 SSL 证书
 - **代理头设置**: X-Forwarded-Proto 设置为 https，确保后端知道原始请求使用 HTTPS
 
-- API 服务日志：
-  - 访问日志: `/var/log/nginx/gmij-win-api-access.log`
-  - 错误日志: `/var/log/nginx/gmij-win-api-error.log`
-
-- 前端服务日志：
-  - 访问日志: `/var/log/nginx/gmij-win-fangzhou-access.log`
-  - 错误日志: `/var/log/nginx/gmij-win-fangzhou-error.log`
-
 ### 日志文件
 
 - API 服务日志：
