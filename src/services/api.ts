@@ -8,9 +8,8 @@ const API_BASE_URL = '/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 用户中心 API 配置
-const USER_CENTER_BASE_URL = '/api/user'
+const USER_CENTER_BASE_URL = '//api.gmij.win/wjapi/user'
 const INVITE_CODE = 'xO9h1BTA'  // 邀请码
-const REGISTRATION_AUTH_TOKEN = 'Bearer eyJrZXkiOiI1Szc1WjhUTkM5RjRITTM3UDlZNyIsImV4cCI6MTc4NDg3OTQxMX0.xxLIwG21pWakS5m9K2DfN'
 
 // 本地存储 key
 const API_KEY_STORAGE = 'gemini_api_key'
