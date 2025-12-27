@@ -2,49 +2,32 @@
 
 ## 文件说明
 
-`nginx-gmij-win.conf` 是用于将 gmij.win 域名反向代理到万界方舟（wanjiedata.com）的 Nginx 配置文件。
+`nginx-gmij-win.conf` 是用于将 gmij.win 域名（HTTP 80端口）反向代理到万界方舟 wanjiedata.com（HTTPS）的 Nginx 配置文件。
+
+## 配置架构
+
+```
+客户端 → HTTP (gmij.win:80) → Nginx → HTTPS (wanjiedata.com:443)
+```
 
 ## 配置内容
 
 该配置文件包含两个服务器块：
 
 ### 1. API 服务反向代理 (maas-openapi.gmij.win)
-- 监听 80 端口并强制重定向到 HTTPS
-- 监听 443 端口（HTTPS）
+- 监听 80 端口（HTTP）
 - 将请求反向代理到 `https://maas-openapi.wanjiedata.com`
 - 配置了适当的代理头和 SSL 设置
+- 禁用缓存以确保 API 请求实时性
 
 ### 2. 前端服务反向代理 (fangzhou.gmij.win)
-- 监听 80 端口并强制重定向到 HTTPS
-- 监听 443 端口（HTTPS）
+- 监听 80 端口（HTTP）
 - 将请求反向代理到 `https://fangzhou.wanjiedata.com`
-- 为静态资源配置了缓存策略
+- 为静态资源配置了缓存策略（30天）
 
 ## 部署步骤
 
-### 1. 准备 SSL 证书
-
-在部署前，需要为 `gmij.win` 域名准备 SSL 证书。可以使用以下方式：
-
-#### 使用 Let's Encrypt (推荐)
-
-```bash
-# 安装 certbot
-sudo apt-get install certbot python3-certbot-nginx
-
-# 获取证书
-sudo certbot certonly --nginx -d maas-openapi.gmij.win -d fangzhou.gmij.win
-```
-
-证书会被保存到 `/etc/letsencrypt/live/gmij.win/` 目录。
-
-#### 自定义证书
-
-如果使用自定义证书，请将证书文件放置到 `/etc/nginx/ssl/gmij.win/` 目录：
-- `fullchain.pem` - 完整证书链
-- `privkey.pem` - 私钥文件
-
-### 2. 安装配置文件
+### 1. 安装配置文件
 
 ```bash
 # 复制配置文件到 Nginx 配置目录
@@ -60,37 +43,38 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 3. 配置 DNS
+### 2. 配置 DNS
 
 确保以下域名的 DNS 记录指向您的服务器 IP：
 - `maas-openapi.gmij.win` → 您的服务器 IP
 - `fangzhou.gmij.win` → 您的服务器 IP
 
-### 4. 验证配置
+### 3. 验证配置
 
 ```bash
-# 检查 API 服务
-curl https://maas-openapi.gmij.win/health
+# 检查 API 服务（HTTP）
+curl http://maas-openapi.gmij.win/health
 
-# 检查前端服务
-curl https://fangzhou.gmij.win
+# 检查前端服务（HTTP）
+curl http://fangzhou.gmij.win
 ```
 
 ## 配置说明
 
-### SSL 证书路径
+### 重要特性
 
-配置文件中默认的 SSL 证书路径为：
-```
-ssl_certificate /etc/nginx/ssl/gmij.win/fullchain.pem;
-ssl_certificate_key /etc/nginx/ssl/gmij.win/privkey.pem;
-```
+- **HTTP Only**: gmij.win 只提供 HTTP (80端口) 服务
+- **HTTPS Upstream**: 后端连接使用 HTTPS 连接到 wanjiedata.com
+- **无需 SSL 证书**: gmij.win 服务器不需要配置 SSL 证书
+- **代理头设置**: X-Forwarded-Proto 设置为 https，确保后端知道原始请求使用 HTTPS
 
-如果使用 Let's Encrypt，请修改为：
-```
-ssl_certificate /etc/letsencrypt/live/gmij.win/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/gmij.win/privkey.pem;
-```
+- API 服务日志：
+  - 访问日志: `/var/log/nginx/gmij-win-api-access.log`
+  - 错误日志: `/var/log/nginx/gmij-win-api-error.log`
+
+- 前端服务日志：
+  - 访问日志: `/var/log/nginx/gmij-win-fangzhou-access.log`
+  - 错误日志: `/var/log/nginx/gmij-win-fangzhou-error.log`
 
 ### 日志文件
 
@@ -105,11 +89,9 @@ ssl_certificate_key /etc/letsencrypt/live/gmij.win/privkey.pem;
 ### 安全设置
 
 配置文件包含以下安全设置：
-- 强制 HTTPS 重定向
-- TLS 1.2 和 1.3 支持
-- 安全的加密套件
-- SSL 会话缓存
-- 代理 SSL 验证
+- 后端 HTTPS 连接使用 SSL 验证
+- 安全的代理头设置
+- X-Forwarded-Proto 设置为 https
 
 ### 缓存策略
 
@@ -124,9 +106,9 @@ ssl_certificate_key /etc/letsencrypt/live/gmij.win/privkey.pem;
 - 检查防火墙规则
 
 ### 2. SSL 证书错误
-- 确认证书文件路径正确
-- 确认证书文件权限正确（通常为 600）
-- 确认证书有效期
+- 注意：gmij.win 服务器不需要 SSL 证书
+- 如果遇到后端 SSL 证书验证错误，检查 `/etc/ssl/certs/ca-certificates.crt` 是否存在
+- 可以临时禁用 `proxy_ssl_verify` 进行测试（不推荐在生产环境使用）
 
 ### 3. 连接超时
 - 调整 `proxy_connect_timeout`、`proxy_send_timeout` 和 `proxy_read_timeout` 参数
@@ -145,22 +127,13 @@ sudo tail -f /var/log/nginx/gmij-win-fangzhou-error.log
 
 ## 维护
 
-### 更新 SSL 证书
-
-如果使用 Let's Encrypt，证书会自动更新。也可以手动更新：
-
-```bash
-sudo certbot renew
-sudo systemctl reload nginx
-```
-
 ### 监控
 
 建议设置监控来跟踪：
 - 服务可用性
 - 响应时间
 - 错误率
-- SSL 证书到期时间
+- 后端 wanjiedata.com 的连接状态
 
 ## 参考
 
