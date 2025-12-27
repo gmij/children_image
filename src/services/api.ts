@@ -1,11 +1,10 @@
 /**
  * Gemini 3 Pro 图像生成 API 服务
- * 使用 gmij.win Gemini API 接口
  * 注意：文生图接口不支持流式输出，仅支持非流式
  */
 
 // API 配置
-const API_BASE_URL = 'https://maas-openapi.gmij.win/api/v1beta/models'
+const API_BASE_URL = '//gmij.win/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key

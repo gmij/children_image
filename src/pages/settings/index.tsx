@@ -74,7 +74,7 @@ export default function Settings() {
       <View className="settings-header">
         <Text className="settings-title">🔐 API 配置</Text>
         <Text className="settings-desc">
-          配置 gmij.win API Key 以使用 Gemini 3 Pro 图像生成服务
+          配置 API Key 以使用 Gemini 3 Pro 图像生成服务
         </Text>
       </View>
 
@@ -116,9 +116,6 @@ export default function Settings() {
           <Text className="help-step">2. 注册并登录账号</Text>
           <Text className="help-step">3. 进入「个人中心」</Text>
           <Text className="help-step">4. 复制您的 API Key</Text>
-        </View>
-        <View className="help-link">
-          <Text className="link-text">🔗 https://fangzhou.gmij.win/login?inviteCode=xO9h1BTA</Text>
         </View>
       </View>
 
