@@ -7,6 +7,11 @@
 const API_BASE_URL = '/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
+// 用户中心 API 配置
+const USER_CENTER_BASE_URL = 'https://fangzhou.wanjiedata.com/maas/userCenter'
+const INVITE_CODE = 'xO9h1BTA'  // 邀请码
+const REGISTRATION_AUTH_TOKEN = 'Bearer eyJrZXkiOiI1Szc1WjhUTkM5RjRITTM3UDlZNyIsImV4cCI6MTc4NDg3OTQxMX0.xxLIwG21pWakS5m9K2DfN'
+
 // 本地存储 key
 const API_KEY_STORAGE = 'gemini_api_key'
 
@@ -275,5 +280,109 @@ export async function generateImageNonStream(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '生成失败，请重试'
     callbacks.onError?.(errorMessage)
+  }
+}
+
+/**
+ * 用户注册/登录 API 响应类型
+ */
+export interface UserApiResponse {
+  success: boolean
+  message: string
+  code: number
+  result: {
+    apiKey?: string
+  } | null
+  timestamp: number
+}
+
+/**
+ * 注册新用户
+ * @param phone 手机号码
+ * @returns 用户注册响应
+ */
+export async function registerUser(phone: string): Promise<UserApiResponse> {
+  try {
+    const response = await fetch(`${USER_CENTER_BASE_URL}/registerUser`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': REGISTRATION_AUTH_TOKEN
+      },
+      body: JSON.stringify({
+        inviteCode: INVITE_CODE,
+        phone: phone
+      })
+    })
+
+    // Always try to parse JSON response, even for HTTP errors
+    // The API returns error details in JSON format
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('registerUser error:', error)
+    
+    // Check if it's a CORS or network error
+    const errorMessage = error instanceof Error ? error.message : '注册失败'
+    const isCorsOrNetworkError = errorMessage.includes('fetch') || 
+                                  errorMessage.includes('CORS') || 
+                                  errorMessage.includes('Network') ||
+                                  errorMessage.includes('Failed to fetch')
+    
+    // If it's a network error or JSON parse error, return a structured error response
+    return {
+      success: false,
+      message: isCorsOrNetworkError 
+        ? '网络连接失败，请检查网络或尝试使用小程序访问'
+        : errorMessage,
+      code: 500,
+      result: null,
+      timestamp: Date.now()
+    }
+  }
+}
+
+/**
+ * 根据手机号查询用户 API Key
+ * @param phone 手机号码
+ * @returns 用户查询响应
+ */
+export async function getUserKey(phone: string): Promise<UserApiResponse> {
+  try {
+    const response = await fetch(
+      `${USER_CENTER_BASE_URL}/getUserKey?phone=${encodeURIComponent(phone)}&inviteCode=${encodeURIComponent(INVITE_CODE)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': REGISTRATION_AUTH_TOKEN
+        }
+      }
+    )
+
+    // Always try to parse JSON response, even for HTTP errors
+    // The API returns error details in JSON format
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('getUserKey error:', error)
+    
+    // Check if it's a CORS or network error
+    const errorMessage = error instanceof Error ? error.message : '查询失败'
+    const isCorsOrNetworkError = errorMessage.includes('fetch') || 
+                                  errorMessage.includes('CORS') || 
+                                  errorMessage.includes('Network') ||
+                                  errorMessage.includes('Failed to fetch')
+    
+    // If it's a network error or JSON parse error, return a structured error response
+    return {
+      success: false,
+      message: isCorsOrNetworkError 
+        ? '网络连接失败，请检查网络或尝试使用小程序访问'
+        : errorMessage,
+      code: 500,
+      result: null,
+      timestamp: Date.now()
+    }
   }
 }

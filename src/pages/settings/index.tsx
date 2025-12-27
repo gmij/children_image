@@ -1,17 +1,25 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Button } from '@tarojs/components'
-import { getApiKey, setApiKey } from '../../services/api'
+import { View, Text, Textarea, Button, Input } from '@tarojs/components'
+import { getApiKey, setApiKey, registerUser, getUserKey } from '../../services/api'
+import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
 export default function Settings() {
+  const { t } = useTranslation()
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [showManualEntry, setShowManualEntry] = useState(false) // Track if we should show manual API key entry
 
   useEffect(() => {
     const savedKey = getApiKey()
     if (savedKey) {
       setApiKeyValue(savedKey)
+      // If user already has an API key, show manual entry section
+      setShowManualEntry(true)
     }
   }, [])
 
@@ -30,7 +38,7 @@ export default function Settings() {
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
       Taro.showToast({
-        title: '请输入 API Key',
+        title: t('pleaseInputApiKey'),
         icon: 'none'
       })
       return
@@ -38,7 +46,7 @@ export default function Settings() {
 
     setApiKey(apiKeyValue.trim())
     Taro.showToast({
-      title: '保存成功！',
+      title: t('generateSuccess'),
       icon: 'success'
     })
 
@@ -50,14 +58,14 @@ export default function Settings() {
 
   const handleClear = () => {
     Taro.showModal({
-      title: '确认清除',
-      content: '确定要清除 API Key 吗？',
+      title: t('confirmClear'),
+      content: t('confirmClearContent'),
       success: (res) => {
         if (res.confirm) {
           setApiKey('')
           setApiKeyValue('')
           Taro.showToast({
-            title: '已清除',
+            title: t('cleared'),
             icon: 'success'
           })
         }
@@ -69,62 +77,193 @@ export default function Settings() {
     setShowKey(!showKey)
   }
 
+  // 处理手机号注册/登录
+  const handlePhoneRegister = async () => {
+    if (!phone.trim()) {
+      Taro.showToast({
+        title: t('pleaseInputPhone'),
+        icon: 'none'
+      })
+      return
+    }
+
+    // 简单的手机号验证
+    const phoneRegex = /^1[3-9]\d{9}$/
+    if (!phoneRegex.test(phone.trim())) {
+      Taro.showToast({
+        title: t('pleaseInputValidPhone'),
+        icon: 'none'
+      })
+      return
+    }
+
+    setIsRegistering(true)
+    setErrorMessage('')
+
+    try {
+      // 先尝试注册
+      console.log('Attempting registration with phone:', phone.trim())
+      const registerResponse = await registerUser(phone.trim())
+      console.log('Register response:', registerResponse)
+      
+      if (registerResponse.success && registerResponse.result?.apiKey) {
+        // 注册成功，保存 API Key
+        console.log('Registration successful')
+        setApiKey(registerResponse.result.apiKey)
+        setApiKeyValue(registerResponse.result.apiKey)
+        Taro.showToast({
+          title: t('registerSuccess'),
+          icon: 'success',
+          duration: 2000
+        })
+        
+        // 延迟返回
+        setTimeout(() => {
+          Taro.navigateBack()
+        }, 2000)
+        return
+      }
+
+      // 如果注册失败，检查错误信息
+      if (!registerResponse.success) {
+        console.log('Registration failed:', registerResponse.message)
+        // 检查是否是"用户在其他渠道已存在"的错误
+        if (registerResponse.message && (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在'))) {
+          console.log('User registered in other channel')
+          setErrorMessage(registerResponse.message)
+          setShowManualEntry(true) // Show manual API key entry section
+          Taro.showModal({
+            title: t('tip'),
+            content: t('otherChannelWarning'),
+            showCancel: false
+          })
+          return
+        }
+        
+        // 其他错误，尝试用 getUserKey 查询（可能是已注册用户）
+        console.log('Trying getUserKey as fallback')
+        try {
+          const getUserResponse = await getUserKey(phone.trim())
+          console.log('GetUserKey response:', getUserResponse)
+          
+          if (getUserResponse.success && getUserResponse.result?.apiKey) {
+            // 查询成功，保存 API Key
+            console.log('GetUserKey successful')
+            setApiKey(getUserResponse.result.apiKey)
+            setApiKeyValue(getUserResponse.result.apiKey)
+            Taro.showToast({
+              title: t('loginSuccess'),
+              icon: 'success',
+              duration: 2000
+            })
+            
+            setTimeout(() => {
+              Taro.navigateBack()
+            }, 2000)
+            return
+          } else {
+            // getUserKey 也失败，显示错误信息
+            console.log('GetUserKey failed:', getUserResponse.message)
+            setErrorMessage(getUserResponse.message || registerResponse.message || t('saveFailed'))
+          }
+        } catch (getUserError) {
+          // getUserKey 请求失败，显示原始注册错误
+          console.error('GetUserKey error:', getUserError)
+          setErrorMessage(registerResponse.message || (getUserError instanceof Error ? getUserError.message : t('saveFailed')))
+        }
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
   return (
-    <View className="settings-container">
-      <View className="settings-header">
-        <Text className="settings-title">🔐 API 配置</Text>
-        <Text className="settings-desc">
-          配置 API Key 以使用 Gemini 3 Pro 图像生成服务
+    <View className='settings-container'>
+      <View className='settings-header'>
+        <Text className='settings-title'>🔐 {t('settingsTitle')}</Text>
+        <Text className='settings-desc'>
+          {t('settingsDesc')}
         </Text>
       </View>
 
-      <View className="settings-section">
-        <View className="section-header">
-          <Text className="section-title">API Key</Text>
-          <View className="toggle-visibility" onClick={toggleShowKey}>
-            <Text>{showKey ? '🙈 隐藏' : '👁️ 显示'}</Text>
+      {/* Phone Registration Section - Always show if no manual entry needed */}
+      {!showManualEntry && (
+        <View className='settings-section'>
+          <Text className='section-title'>📱 {t('phoneLabel')}</Text>
+          <Text className='section-desc'>{t('registerHelp1')}</Text>
+          
+          <View className='input-wrapper'>
+            <Input
+              className='phone-input'
+              type='number'
+              maxlength={11}
+              placeholder={t('phonePlaceholder')}
+              value={phone}
+              onInput={(e) => setPhone(e.detail.value)}
+              disabled={isRegistering}
+            />
           </View>
-        </View>
 
-        <View className="input-wrapper">
-          <Textarea
-            className="api-input"
-            placeholder="请输入您的 API Key"
-            value={displayValue}
-            onInput={handleInput}
-            maxlength={-1}
-            disabled={!showKey && (apiKeyValue?.length || 0) > 0}
-          />
-        </View>
-
-        <View className="button-group">
-          <Button className="save-btn" onClick={handleSave}>
-            💾 保存设置
+          <Button 
+            className={`register-btn ${isRegistering ? 'loading' : ''}`}
+            onClick={handlePhoneRegister}
+            disabled={isRegistering}
+          >
+            {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
           </Button>
-          {apiKeyValue && (
-            <Button className="clear-btn" onClick={handleClear}>
-              🗑️ 清除
-            </Button>
+
+          {errorMessage && (
+            <View className='error-message'>
+              <Text className='error-text'>⚠️ {errorMessage}</Text>
+            </View>
           )}
         </View>
-      </View>
+      )}
 
-      <View className="help-section">
-        <Text className="help-title">📖 如何获取 API Key？</Text>
-        <View className="help-steps">
-          <Text className="help-step">1. 访问 gmij.win 平台</Text>
-          <Text className="help-step">2. 注册并登录账号</Text>
-          <Text className="help-step">3. 进入「个人中心」</Text>
-          <Text className="help-step">4. 复制您的 API Key</Text>
+      {/* Manual API Key Section - Only show after "other channel" error or if user already has a key */}
+      {showManualEntry && (
+        <View className='settings-section'>
+          <View className='section-header'>
+            <Text className='section-title'>{t('apiKeyLabel')}</Text>
+            <View className='toggle-visibility' onClick={toggleShowKey}>
+              <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
+            </View>
+          </View>
+          <Text className='section-desc'>{t('manualEntryDesc')}</Text>
+
+          <View className='input-wrapper'>
+            <Textarea
+              className='api-input'
+              placeholder={t('apiKeyPlaceholder')}
+              value={displayValue}
+              onInput={handleInput}
+              maxlength={-1}
+              disabled={!showKey && (apiKeyValue?.length || 0) > 0}
+            />
+          </View>
+
+          <View className='button-group'>
+            <Button className='save-btn' onClick={handleSave}>
+              💾 {t('saveSettings')}
+            </Button>
+            {apiKeyValue && (
+              <Button className='logout-btn' onClick={handleClear}>
+                🚪 {t('logoutButton')}
+              </Button>
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
-      <View className="info-section">
-        <Text className="info-title">ℹ️ 说明</Text>
-        <Text className="info-text">
-          • API Key 仅保存在您的设备本地{'\n'}
-          • 请妥善保管，不要泄露给他人{'\n'}
-          • 使用的模型：gemini-3-pro-image-preview
+      <View className='info-section'>
+        <Text className='info-title'>ℹ️ {t('infoTitle')}</Text>
+        <Text className='info-text'>
+          {t('infoText1')}{'\n'}
+          {t('infoText2')}{'\n'}
+          {t('infoText3')}
         </Text>
       </View>
     </View>
