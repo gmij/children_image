@@ -4,7 +4,7 @@
  */
 
 // API 配置
-const API_BASE_URL = '//gmij.win/api/v1beta/models'
+const API_BASE_URL = '/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 本地存储 key
