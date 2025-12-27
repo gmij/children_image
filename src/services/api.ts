@@ -305,8 +305,7 @@ export async function registerUser(phone: string): Promise<UserApiResponse> {
     const response = await fetch(`${USER_CENTER_BASE_URL}/registerUser`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': REGISTRATION_AUTH_TOKEN
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         inviteCode: INVITE_CODE,
@@ -353,8 +352,7 @@ export async function getUserKey(phone: string): Promise<UserApiResponse> {
       {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': REGISTRATION_AUTH_TOKEN
+          'Content-Type': 'application/json'
         }
       }
     )
