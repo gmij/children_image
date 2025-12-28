@@ -139,11 +139,10 @@ export async function generateImage(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [
@@ -156,8 +155,7 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          aspect_ratio: '2:3'
+          responseModalities: ['TEXT', 'IMAGE']
         }
       })
     })
@@ -220,11 +218,10 @@ export async function generateImageNonStream(
   const enhancedPrompt = enhancePrompt(prompt)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
+    const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [
@@ -237,8 +234,7 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          aspect_ratio: '2:3'
+          responseModalities: ['TEXT', 'IMAGE']
         }
       })
     })
