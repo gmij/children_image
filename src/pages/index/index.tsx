@@ -212,7 +212,7 @@ export default function Index() {
             
             // 添加到上传图片列表
             const newImage: HistoryImage = {
-              id: `upload_${Date.now()}`,
+              id: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               url: imageUrl,
               createdAt: Date.now()
             }
@@ -248,17 +248,6 @@ export default function Index() {
     if (selectedImageId === imageId) {
       setSelectedImageId(null)
     }
-  }
-
-  // 清除选择的基础图片（保留用于向后兼容）
-  const handleClearBaseImage = () => {
-    setBaseImage('')
-    setBaseImageMimeType('')
-  }
-
-  // 使用历史图片进行二创（改为选择方式）
-  const handleModifyHistory = (imageId: string) => {
-    setSelectedImageId(prev => prev === imageId ? null : imageId)
   }
 
   // 生成图片
