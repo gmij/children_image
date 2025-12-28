@@ -204,6 +204,50 @@ export function setSignature(signature: string): void {
 }
 
 /**
+ * 解析 data URL，提取 MIME 类型和 base64 数据
+ */
+export function parseDataUrl(dataUrl: string): { mimeType: string; data: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  if (!match) return null
+  return {
+    mimeType: match[1],
+    data: match[2]
+  }
+}
+
+/**
+ * 保存 base64 图片到本地文件（仅小程序环境）
+ * 返回本地文件路径
+ */
+function saveImageToLocalFile(imageUrl: string): string {
+  if (process.env.TARO_ENV === 'h5') {
+    // H5 环境直接返回原 URL
+    return imageUrl
+  }
+
+  // 小程序环境：检查是否是 base64 data URL
+  const parsed = parseDataUrl(imageUrl)
+  if (!parsed) {
+    // 不是 base64，可能已经是文件路径
+    return imageUrl
+  }
+
+  // 保存到永久文件
+  const fs = wx.getFileSystemManager()
+  const ext = parsed.mimeType.split('/')[1] || 'png'
+  const filePath = `${wx.env.USER_DATA_PATH}/history_${Date.now()}.${ext}`
+
+  try {
+    fs.writeFileSync(filePath, parsed.data, 'base64')
+    return filePath
+  } catch (e) {
+    console.error('保存图片到本地文件失败:', e)
+    // 失败时返回原 URL（可能会导致存储配额问题，但至少不会丢失图片）
+    return imageUrl
+  }
+}
+
+/**
  * 历史图片类型
  */
 export interface HistoryImage {
@@ -232,10 +276,13 @@ export function getImageHistory(): HistoryImage[] {
  * 添加图片到历史记录（最多保存3张）
  */
 export function addImageToHistory(imageUrl: string): HistoryImage {
+  // 先保存图片到本地文件（小程序环境），获取文件路径
+  const savedUrl = saveImageToLocalFile(imageUrl)
+  
   const history = getImageHistory()
   const newImage: HistoryImage = {
     id: `img_${Date.now()}`,
-    url: imageUrl,
+    url: savedUrl,  // 存储文件路径而不是 base64 数据
     createdAt: Date.now()
   }
   
@@ -244,6 +291,22 @@ export function addImageToHistory(imageUrl: string): HistoryImage {
   
   // 只保留最近的 MAX_HISTORY_IMAGES 张
   const trimmedHistory = history.slice(0, MAX_HISTORY_IMAGES)
+  
+  // 删除被移除的图片文件（小程序环境）
+  if (process.env.TARO_ENV !== 'h5' && history.length > MAX_HISTORY_IMAGES) {
+    const removedImages = history.slice(MAX_HISTORY_IMAGES)
+    const fs = wx.getFileSystemManager()
+    removedImages.forEach(img => {
+      // 只删除本地文件路径（以 USER_DATA_PATH 开头的）
+      if (img.url.startsWith(wx.env.USER_DATA_PATH)) {
+        try {
+          fs.unlinkSync(img.url)
+        } catch (e) {
+          console.warn('删除旧图片文件失败:', e)
+        }
+      }
+    })
+  }
   
   if (process.env.TARO_ENV === 'h5') {
     localStorage.setItem(IMAGE_HISTORY_STORAGE, JSON.stringify(trimmedHistory))
@@ -263,6 +326,23 @@ export function addImageToHistory(imageUrl: string): HistoryImage {
  */
 export function deleteImageFromHistory(imageId: string): void {
   const history = getImageHistory()
+  
+  // 找到要删除的图片
+  const imageToDelete = history.find(img => img.id === imageId)
+  
+  // 删除物理文件（小程序环境）
+  if (process.env.TARO_ENV !== 'h5' && imageToDelete) {
+    // 只删除本地文件路径（以 USER_DATA_PATH 开头的）
+    if (imageToDelete.url.startsWith(wx.env.USER_DATA_PATH)) {
+      const fs = wx.getFileSystemManager()
+      try {
+        fs.unlinkSync(imageToDelete.url)
+      } catch (e) {
+        console.warn('删除图片文件失败:', e)
+      }
+    }
+  }
+  
   const filteredHistory = history.filter(img => img.id !== imageId)
   
   if (process.env.TARO_ENV === 'h5') {
@@ -294,20 +374,6 @@ function getFriendlyErrorMessage(error: unknown): string {
   }
   
   return error.message
-}
-
-/**
- * 从 Data URL 提取 base64 数据和 MIME 类型
- */
-export function parseDataUrl(dataUrl: string): { data: string; mimeType: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
-  if (match) {
-    return {
-      mimeType: match[1],
-      data: match[2]
-    }
-  }
-  return null
 }
 
 /**
