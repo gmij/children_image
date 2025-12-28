@@ -112,7 +112,7 @@
   border-radius: 12px;
   background: #f9f9f9;
   transition: border-color 0.2s ease;
-  resize: vertical;
+  resize: none; /* 禁止调整大小，防止换行 */
 
   &:focus {
     border-color: #4CAF50;
@@ -123,6 +123,7 @@
 .upload-icon-btn {
   width: 48px;
   height: 48px;
+  min-width: 48px; /* 确保不会缩小 */
   background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
   border-radius: 12px;
   display: flex;
@@ -135,6 +136,21 @@
 
   &:active {
     transform: scale(0.95);
+  }
+
+  &.highlighted {
+    background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.8);
   }
 }
 
@@ -418,8 +434,8 @@
   justify-content: center;
   align-items: center;
   color: #fff;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 14px; /* 调整为适合emoji的大小 */
+  font-weight: normal; /* emoji不需要bold */
   cursor: pointer;
 
   &:active {
