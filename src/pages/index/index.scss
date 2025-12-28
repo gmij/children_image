@@ -112,7 +112,7 @@
   border-radius: 12px;
   background: #f9f9f9;
   transition: border-color 0.2s ease;
-  resize: none; /* 禁止调整大小，防止换行 */
+  resize: none; /* Disable resize to prevent line wrapping */
 
   &:focus {
     border-color: #4CAF50;
@@ -123,7 +123,7 @@
 .upload-icon-btn {
   width: 48px;
   height: 48px;
-  min-width: 48px; /* 确保不会缩小 */
+  min-width: 48px; /* Ensure minimum width is maintained */
   background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
   border-radius: 12px;
   display: flex;
@@ -434,8 +434,8 @@
   justify-content: center;
   align-items: center;
   color: #fff;
-  font-size: 14px; /* 调整为适合emoji的大小 */
-  font-weight: normal; /* emoji不需要bold */
+  font-size: 14px; /* Adjust size for emoji display */
+  font-weight: normal; /* Emoji doesn't need bold weight */
   cursor: pointer;
 
   &:active {
