@@ -457,63 +457,30 @@ export default function Index() {
       {/* 输入区域 */}
       <View className='input-section'>
         <Text className='section-title'>📝 {t('inputPromptTitle')}</Text>
-        <Textarea
-          className='prompt-input'
-          placeholder={selectedImageId ? t('modifyPromptPlaceholder') : t('inputPromptPlaceholder')}
-          value={prompt}
-          onInput={(e) => setPrompt(e.detail.value)}
-          maxlength={200}
-          disabled={isGenerating}
-        />
+        <View className='input-wrapper'>
+          <Textarea
+            className='prompt-input-with-upload'
+            placeholder={selectedImageId ? t('modifyPromptPlaceholder') : t('inputPromptPlaceholder')}
+            value={prompt}
+            onInput={(e) => setPrompt(e.detail.value)}
+            maxlength={200}
+            disabled={isGenerating}
+          />
+          <View 
+            className='upload-icon-btn' 
+            onClick={handleUploadImage}
+          >
+            {isUploading ? (
+              <Text className='upload-icon'>⏳</Text>
+            ) : (
+              <Text className='upload-icon'>📎</Text>
+            )}
+          </View>
+        </View>
         <View className='char-count'>
           <Text>{prompt.length}/200</Text>
         </View>
-
-        {/* 上传图片按钮 */}
-        <View className='upload-section'>
-          <Button 
-            className='upload-btn' 
-            onClick={handleUploadImage} 
-            disabled={isGenerating || isUploading}
-            loading={isUploading}
-          >
-            {isUploading ? `⏳ ${t('uploading')}` : `📷 ${t('uploadImageButton')}`}
-          </Button>
-        </View>
       </View>
-
-      {/* 上传的图片区域 */}
-      {uploadedImages.length > 0 && (
-        <View className='uploaded-section'>
-          <Text className='section-title'>📤 {t('uploadedImagesTitle')}</Text>
-          <View className='uploaded-list'>
-            {uploadedImages.map((img) => (
-              <View 
-                key={img.id} 
-                className={`uploaded-item ${selectedImageId === img.id ? 'selected' : ''}`}
-                onClick={() => handleToggleImageSelection(img.id)}
-              >
-                <Image
-                  className='uploaded-thumbnail'
-                  src={img.url}
-                  mode='aspectFill'
-                />
-                {selectedImageId === img.id && (
-                  <View className='selected-indicator'>
-                    <Text className='check-icon'>✓</Text>
-                  </View>
-                )}
-                <View 
-                  className='uploaded-delete'
-                  onClick={(e) => handleDeleteUploadedImage(e, img.id)}
-                >
-                  <Text>×</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* 示例提示词 */}
       <View className='examples-section'>
@@ -549,32 +516,74 @@ export default function Index() {
         </View>
       )}
 
-      {/* 历史图片区域 */}
-      {historyImages.length > 0 && (
+      {/* 历史图片区域 - 合并上传和历史 */}
+      {(historyImages.length > 0 || uploadedImages.length > 0) && (
         <View className='history-section'>
           <Text className='section-title'>📸 {t('historyImagesTitle')}</Text>
           <View className='history-list'>
-            {historyImages.map((img) => (
+            {/* 显示上传的图片 */}
+            {uploadedImages.map((img) => (
               <View 
                 key={img.id} 
                 className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
-                onClick={() => handleToggleImageSelection(img.id)}
               >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
+                  onClick={() => setPreviewHistoryImage(img.url)}
                 />
                 {selectedImageId === img.id && (
                   <View className='selected-indicator'>
                     <Text className='check-icon'>✓</Text>
                   </View>
                 )}
-                <View 
-                  className='history-delete'
-                  onClick={(e) => handleDeleteHistory(e, img.id)}
-                >
-                  <Text>×</Text>
+                <View className='history-actions'>
+                  <View 
+                    className='history-select'
+                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                  >
+                    <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                  </View>
+                  <View 
+                    className='history-delete'
+                    onClick={(e) => handleDeleteUploadedImage(e, img.id)}
+                  >
+                    <Text>×</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+            {/* 显示历史图片 */}
+            {historyImages.map((img) => (
+              <View 
+                key={img.id} 
+                className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+              >
+                <Image
+                  className='history-thumbnail'
+                  src={img.url}
+                  mode='aspectFill'
+                  onClick={() => setPreviewHistoryImage(img.url)}
+                />
+                {selectedImageId === img.id && (
+                  <View className='selected-indicator'>
+                    <Text className='check-icon'>✓</Text>
+                  </View>
+                )}
+                <View className='history-actions'>
+                  <View 
+                    className='history-select'
+                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                  >
+                    <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                  </View>
+                  <View 
+                    className='history-delete'
+                    onClick={(e) => handleDeleteHistory(e, img.id)}
+                  >
+                    <Text>×</Text>
+                  </View>
                 </View>
               </View>
             ))}
