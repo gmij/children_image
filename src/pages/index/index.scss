@@ -406,6 +406,29 @@
   z-index: 10;
 }
 
+.history-select-left {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(76, 175, 80, 0.9);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+
+  &:active {
+    transform: scale(0.9);
+    background: rgba(76, 175, 80, 1);
+  }
+}
+
 .history-select {
   width: 28px;
   height: 28px;

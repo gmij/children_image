@@ -533,13 +533,15 @@ export default function Index() {
                   mode='aspectFill'
                   onClick={() => setPreviewHistoryImage(img.url)}
                 />
+                {/* Left selection indicator */}
+                <View 
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                >
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
+                {/* Right delete button */}
                 <View className='history-actions'>
-                  <View 
-                    className='history-select'
-                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                  >
-                    <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
-                  </View>
                   <View 
                     className='history-delete'
                     onClick={(e) => handleDeleteUploadedImage(e, img.id)}
@@ -561,13 +563,15 @@ export default function Index() {
                   mode='aspectFill'
                   onClick={() => setPreviewHistoryImage(img.url)}
                 />
+                {/* Left selection indicator */}
+                <View 
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                >
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
+                {/* Right delete button */}
                 <View className='history-actions'>
-                  <View 
-                    className='history-select'
-                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                  >
-                    <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
-                  </View>
                   <View 
                     className='history-delete'
                     onClick={(e) => handleDeleteHistory(e, img.id)}
