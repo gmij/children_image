@@ -526,12 +526,13 @@ export default function Index() {
               <View 
                 key={img.id} 
                 className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
               >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
-                  onClick={() => setPreviewHistoryImage(img.url)}
+                  onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
                 {/* Left selection indicator */}
                 <View 
@@ -546,7 +547,7 @@ export default function Index() {
                     className='history-delete'
                     onClick={(e) => handleDeleteUploadedImage(e, img.id)}
                   >
-                    <Text>🗑️</Text>
+                    <Text>×</Text>
                   </View>
                 </View>
               </View>
@@ -556,12 +557,13 @@ export default function Index() {
               <View 
                 key={img.id} 
                 className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
               >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
-                  onClick={() => setPreviewHistoryImage(img.url)}
+                  onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
                 {/* Left selection indicator */}
                 <View 
@@ -576,7 +578,7 @@ export default function Index() {
                     className='history-delete'
                     onClick={(e) => handleDeleteHistory(e, img.id)}
                   >
-                    <Text>🗑️</Text>
+                    <Text>×</Text>
                   </View>
                 </View>
               </View>

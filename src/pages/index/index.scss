@@ -438,8 +438,9 @@
   justify-content: center;
   align-items: center;
   color: #fff;
-  font-size: 14px; /* Adjust size for emoji display */
-  font-weight: normal; /* Emoji doesn't need bold weight */
+  font-size: 20px; /* Larger size for × symbol */
+  font-weight: 300; /* Lighter weight for cleaner look */
+  line-height: 1; /* Better vertical alignment */
   cursor: pointer;
 
   &:active {
