@@ -95,6 +95,69 @@
   color: #999;
 }
 
+/* 输入框包装器 - 包含textarea和上传按钮 */
+.input-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+}
+
+.prompt-input-with-upload {
+  flex: 1;
+  min-height: 100px;
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #f9f9f9;
+  transition: border-color 0.2s ease;
+  resize: none; /* Disable resize to prevent line wrapping */
+
+  &:focus {
+    border-color: #4CAF50;
+    background: #fff;
+  }
+}
+
+.upload-icon-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 48px; /* Ensure minimum width is maintained */
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.highlighted {
+    background: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+    animation: pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.8);
+  }
+}
+
+.upload-icon {
+  font-size: 24px;
+}
+
 .examples-section {
   background: #fff;
   border-radius: 16px;
@@ -311,9 +374,21 @@
   position: relative;
   width: calc(33.33% - 8px);
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background: #f5f5f5;
+  border: 3px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &.selected {
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .history-thumbnail {
@@ -322,20 +397,55 @@
   object-fit: cover;
 }
 
-.history-delete {
+.history-actions {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  background: rgba(0, 0, 0, 0.6);
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.history-select-left {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(76, 175, 80, 0.9);
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+
+  &:active {
+    transform: scale(0.9);
+    background: rgba(76, 175, 80, 1);
+  }
+}
+
+.history-delete {
+  width: 28px;
+  height: 28px;
+  background: rgba(244, 67, 54, 0.9);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 14px; /* Adjust size for emoji display */
+  font-weight: normal; /* Emoji doesn't need bold weight */
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.9);
+    background: rgba(244, 67, 54, 1);
+  }
 }
 
 .thumbnail-wrapper {
@@ -712,4 +822,85 @@
 .tip-text {
   font-size: 13px;
   color: #999;
+}
+
+.selected-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  background: #4CAF50;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: checkmark-appear 0.3s ease;
+}
+
+@keyframes checkmark-appear {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.check-icon {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.base-image-preview {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 12px;
+  border: 2px dashed #9C27B0;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.preview-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+.clear-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(244, 67, 54, 0.8);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.95);
+    background: rgba(244, 67, 54, 1);
+  }
+}
+
+.preview-image {
+  width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  background: #fff;
 }

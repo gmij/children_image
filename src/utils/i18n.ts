@@ -35,6 +35,22 @@ export const translations = {
     exampleEarth: 'Protect the earth, care for the environment',
     exampleFestival: 'Happy Mid-Autumn Festival',
     
+    // Image upload and modification
+    uploadImageButton: 'Upload Image for Modification',
+    uploading: 'Loading...',
+    uploadedImagesTitle: 'Uploaded Images (Click to select for generation)',
+    historyImagesTitle: 'History Images (Max 3, click to select for generation)',
+    imageUploadSuccess: 'Image uploaded successfully',
+    imageSelectFailed: 'Image selection failed',
+    imageReadFailed: 'Failed to read image',
+    readingImage: 'Reading image...',
+    modifyPromptPlaceholder: 'Enter modification request, e.g., Make the image brighter, add more flowers',
+    historyFull: 'History Full',
+    historyFullMessage: 'Maximum of 3 images can be saved, please delete some history images before generating new ones.',
+    confirmDelete: 'Confirm Delete',
+    confirmDeleteMessage: 'Are you sure you want to delete this image?',
+    deleted: 'Deleted',
+    
     // Settings page
     settingsTitle: 'API Configuration',
     settingsDesc: 'Configure Wanjie Ark API Key to use Gemini 3 Pro image generation service',
@@ -119,6 +135,22 @@ export const translations = {
     exampleAnimals: '小动物们的快乐一天',
     exampleEarth: '保护地球，爱护环境',
     exampleFestival: '中秋节快乐',
+    
+    // Image upload and modification
+    uploadImageButton: '上传图片进行修改',
+    uploading: '读取中...',
+    uploadedImagesTitle: '上传的图片（点击图片选择参与生成）',
+    historyImagesTitle: '历史图片（最多保存3张，点击选择参与生成）',
+    imageUploadSuccess: '图片上传成功',
+    imageSelectFailed: '选择图片失败',
+    imageReadFailed: '读取图片失败',
+    readingImage: '读取图片中...',
+    modifyPromptPlaceholder: '输入修改要求，例如：让图片更明亮，添加更多花朵',
+    historyFull: '历史图片已满',
+    historyFullMessage: '最多只能保存 3 张图片，请先删除一些历史图片再生成新的。',
+    confirmDelete: '确认删除',
+    confirmDeleteMessage: '确定要删除这张图片吗？',
+    deleted: '已删除',
     
     // Settings page
     settingsTitle: 'API 配置',

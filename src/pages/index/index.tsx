@@ -6,8 +6,9 @@ import {
   getPaperSizeIndex, getPaperOrientation, 
   getImageStyle, STYLE_NAMES,
   getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
-  registerUser, getUserKey, setApiKey
+  registerUser, getUserKey, setApiKey, parseDataUrl, getMimeTypeFromPath
 } from '../../services/api'
+import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
 // 历史图片最大数量
@@ -32,6 +33,8 @@ const PAPER_SIZES = [
 ]
 
 export default function Index() {
+  const { t } = useTranslation()
+  
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState('')
@@ -41,6 +44,15 @@ export default function Index() {
   const [currentStyle, setCurrentStyle] = useState('handwritten') // 当前风格
   const [historyImages, setHistoryImages] = useState<HistoryImage[]>([]) // 历史图片
   const [previewHistoryImage, setPreviewHistoryImage] = useState<string | null>(null) // 预览历史图片
+  
+  // 基础图片（用于图生图）
+  const [baseImage, setBaseImage] = useState<string>('')
+  const [baseImageMimeType, setBaseImageMimeType] = useState<string>('')
+  
+  // 上传图片相关状态
+  const [uploadedImages, setUploadedImages] = useState<HistoryImage[]>([]) // 上传的图片列表
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null) // 选中的图片ID
+  const [isUploading, setIsUploading] = useState(false) // 上传中状态
   
   // 登录弹窗状态
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -96,16 +108,16 @@ export default function Index() {
   }
 
   // 删除历史图片
-  const handleDeleteHistory = (e: React.MouseEvent, imageId: string) => {
+  const handleDeleteHistory = (e: any, imageId: string) => {
     e.stopPropagation()
     Taro.showModal({
-      title: '确认删除',
-      content: '确定要删除这张图片吗？',
+      title: t('confirmDelete'),
+      content: t('confirmDeleteMessage'),
       success: (res) => {
         if (res.confirm) {
           deleteImageFromHistory(imageId)
           setHistoryImages(prev => prev.filter(img => img.id !== imageId))
-          Taro.showToast({ title: '已删除', icon: 'success' })
+          Taro.showToast({ title: t('deleted'), icon: 'success' })
         }
       }
     })
@@ -177,6 +189,110 @@ export default function Index() {
     })
   }
 
+  // 生成唯一的上传图片 ID
+  const generateUploadId = () => {
+    return `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  // 处理图片上传成功
+  const handleImageUploadSuccess = (imageUrl: string) => {
+    const newImage: HistoryImage = {
+      id: generateUploadId(),
+      url: imageUrl,
+      createdAt: Date.now()
+    }
+    setUploadedImages(prev => [newImage, ...prev])
+    setSelectedImageId(newImage.id)
+    
+    setIsUploading(false)
+    Taro.hideLoading()
+    Taro.showToast({ title: t('imageUploadSuccess'), icon: 'success', duration: 1500 })
+  }
+
+  // 处理图片上传失败
+  const handleImageUploadError = () => {
+    setIsUploading(false)
+    Taro.hideLoading()
+    Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+  }
+
+  // 上传本地图片
+  const handleUploadImage = () => {
+    Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFilePath = res.tempFilePaths[0]
+        const file = res.tempFiles?.[0]
+        
+        // 显示加载提示
+        setIsUploading(true)
+        Taro.showLoading({ title: t('readingImage'), mask: true })
+        
+        // H5 environment handling
+        if (process.env.TARO_ENV === 'h5') {
+          // In H5, we need to convert blob to base64 using FileReader
+          const reader = new FileReader()
+          
+          // For H5, we can get the file from tempFiles
+          if (file && file.path) {
+            fetch(file.path)
+              .then(response => response.blob())
+              .then(blob => {
+                reader.readAsDataURL(blob)
+                reader.onloadend = () => {
+                  const base64data = reader.result as string
+                  handleImageUploadSuccess(base64data)
+                }
+                reader.onerror = () => {
+                  handleImageUploadError()
+                }
+              })
+              .catch(() => {
+                handleImageUploadError()
+              })
+          } else {
+            handleImageUploadError()
+          }
+        } else {
+          // WeChat Mini Program environment
+          Taro.getFileSystemManager().readFile({
+            filePath: tempFilePath,
+            encoding: 'base64',
+            success: (fileRes: any) => {
+              const mimeType = getMimeTypeFromPath(tempFilePath, file?.type)
+              const imageData = fileRes.data as string
+              const imageUrl = `data:${mimeType};base64,${imageData}`
+              
+              handleImageUploadSuccess(imageUrl)
+            },
+            fail: () => {
+              handleImageUploadError()
+            }
+          })
+        }
+      },
+      fail: () => {
+        Taro.showToast({ title: t('imageSelectFailed'), icon: 'none' })
+      }
+    })
+  }
+
+  // 选择/取消选择图片
+  const handleToggleImageSelection = (imageId: string) => {
+    setSelectedImageId(prev => prev === imageId ? null : imageId)
+  }
+
+  // 删除上传的图片
+  const handleDeleteUploadedImage = (e: any, imageId: string) => {
+    e.stopPropagation()
+    setUploadedImages(prev => prev.filter(img => img.id !== imageId))
+    if (selectedImageId === imageId) {
+      setSelectedImageId(null)
+    }
+  }
+
   // 生成图片
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -204,10 +320,10 @@ export default function Index() {
     // 检查历史图片数量是否已满
     if (historyImages.length >= MAX_HISTORY_IMAGES) {
       Taro.showModal({
-        title: '历史图片已满',
-        content: `最多只能保存 ${MAX_HISTORY_IMAGES} 张图片，请先删除一些历史图片再生成新的。`,
+        title: t('historyFull'),
+        content: t('historyFullMessage'),
         showCancel: false,
-        confirmText: '知道了'
+        confirmText: t('confirm')
       })
       return
     }
@@ -219,6 +335,31 @@ export default function Index() {
 
     const options: GenerateOptions = {
       aspectRatio: getAspectRatio()
+    }
+
+    // 获取选中的图片
+    let selectedImage: HistoryImage | undefined
+    if (selectedImageId) {
+      // 先从上传的图片中查找
+      selectedImage = uploadedImages.find(img => img.id === selectedImageId)
+      // 如果没找到，从历史图片中查找
+      if (!selectedImage) {
+        selectedImage = historyImages.find(img => img.id === selectedImageId)
+      }
+    }
+
+    // 如果有选中的图片，提取base64和MIME类型
+    if (selectedImage) {
+      const parsed = parseDataUrl(selectedImage.url)
+      if (parsed) {
+        options.baseImage = parsed.data
+        options.baseImageMimeType = parsed.mimeType
+      }
+    }
+    // 向后兼容：如果有旧的基础图片状态，也使用
+    else if (baseImage && baseImageMimeType) {
+      options.baseImage = baseImage
+      options.baseImageMimeType = baseImageMimeType
     }
 
     // 调用非流式 API（文生图不支持流式输出）
@@ -233,6 +374,10 @@ export default function Index() {
           // 生成完成后自动添加到历史
           const newImage = addImageToHistory(imageUrl)
           setHistoryImages(prev => [newImage, ...prev].slice(0, MAX_HISTORY_IMAGES))
+          // 清除选择状态和基础图片
+          setSelectedImageId(null)
+          setBaseImage('')
+          setBaseImageMimeType('')
         },
         onError: (err) => {
           setError(err)
@@ -311,15 +456,27 @@ export default function Index() {
 
       {/* 输入区域 */}
       <View className='input-section'>
-        <Text className='section-title'>📝 输入{getStyleName()}主题</Text>
-        <Textarea
-          className='prompt-input'
-          placeholder='例如：春天来了，花儿开放'
-          value={prompt}
-          onInput={(e) => setPrompt(e.detail.value)}
-          maxlength={200}
-          disabled={isGenerating}
-        />
+        <Text className='section-title'>📝 {t('inputPromptTitle')}</Text>
+        <View className='input-wrapper'>
+          <Textarea
+            className='prompt-input-with-upload'
+            placeholder={selectedImageId ? t('modifyPromptPlaceholder') : t('inputPromptPlaceholder')}
+            value={prompt}
+            onInput={(e) => setPrompt(e.detail.value)}
+            maxlength={200}
+            disabled={isGenerating}
+          />
+          <View 
+            className={`upload-icon-btn ${selectedImageId ? 'highlighted' : ''}`}
+            onClick={handleUploadImage}
+          >
+            {isUploading ? (
+              <Text className='upload-icon'>⏳</Text>
+            ) : (
+              <Text className='upload-icon'>📎</Text>
+            )}
+          </View>
+        </View>
         <View className='char-count'>
           <Text>{prompt.length}/200</Text>
         </View>
@@ -359,24 +516,68 @@ export default function Index() {
         </View>
       )}
 
-      {/* 历史图片区域 */}
-      {historyImages.length > 0 && (
+      {/* 历史图片区域 - 合并上传和历史 */}
+      {(historyImages.length > 0 || uploadedImages.length > 0) && (
         <View className='history-section'>
-          <Text className='section-title'>📸 历史图片（最多保存3张）</Text>
+          <Text className='section-title'>📸 {t('historyImagesTitle')}</Text>
           <View className='history-list'>
-            {historyImages.map((img) => (
-              <View key={img.id} className='history-item'>
+            {/* 显示上传的图片 */}
+            {uploadedImages.map((img) => (
+              <View 
+                key={img.id} 
+                className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+              >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
                   onClick={() => setPreviewHistoryImage(img.url)}
                 />
+                {/* Left selection indicator */}
                 <View 
-                  className='history-delete'
-                  onClick={(e) => handleDeleteHistory(e, img.id)}
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
                 >
-                  <Text>×</Text>
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
+                {/* Right delete button */}
+                <View className='history-actions'>
+                  <View 
+                    className='history-delete'
+                    onClick={(e) => handleDeleteUploadedImage(e, img.id)}
+                  >
+                    <Text>🗑️</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+            {/* 显示历史图片 */}
+            {historyImages.map((img) => (
+              <View 
+                key={img.id} 
+                className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+              >
+                <Image
+                  className='history-thumbnail'
+                  src={img.url}
+                  mode='aspectFill'
+                  onClick={() => setPreviewHistoryImage(img.url)}
+                />
+                {/* Left selection indicator */}
+                <View 
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                >
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
+                {/* Right delete button */}
+                <View className='history-actions'>
+                  <View 
+                    className='history-delete'
+                    onClick={(e) => handleDeleteHistory(e, img.id)}
+                  >
+                    <Text>🗑️</Text>
+                  </View>
                 </View>
               </View>
             ))}
