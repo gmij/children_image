@@ -1,270 +1,257 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Button, Input } from '@tarojs/components'
-import { getApiKey, setApiKey, registerUser, getUserKey } from '../../services/api'
-import { useTranslation } from '../../utils/i18n'
+import { View, Text, Textarea, Input, Button } from '@tarojs/components'
+import { 
+  getApiKey, setApiKey, 
+  getPaperSizeIndex, setPaperSizeIndex, 
+  getPaperOrientation, setPaperOrientation,
+  getImageStyle, setImageStyle,
+  getSignature, setSignature
+} from '../../services/api'
 import './index.scss'
 
+// 纸张尺寸选项
+const PAPER_SIZES = [
+  { name: 'A4', portrait: '2:3', landscape: '3:2' },
+  { name: 'A3', portrait: '2:3', landscape: '3:2' },
+  { name: '1:1', portrait: '1:1', landscape: '1:1' },
+  { name: '16:9', portrait: '9:16', landscape: '16:9' },
+  { name: '4:3', portrait: '3:4', landscape: '4:3' },
+]
+
+// 风格选项
+const STYLE_OPTIONS = [
+  { id: 'handwritten', name: '手抄报', prompt: '手抄报风格，手绘感，彩色边框装饰' },
+  { id: 'wireframe', name: '线框图', prompt: '线框图风格，简洁线条，黑白为主' },
+  { id: 'blackboard', name: '黑板报', prompt: '黑板报风格，深色背景，粉笔画效果' },
+]
+
 export default function Settings() {
-  const { t } = useTranslation()
   const [apiKeyValue, setApiKeyValue] = useState('')
-  const [showKey, setShowKey] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [isRegistering, setIsRegistering] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [showManualEntry, setShowManualEntry] = useState(false) // Track if we should show manual API key entry
+  const [isEditing, setIsEditing] = useState(false)
+  const [selectedPaperIndex, setSelectedPaperIndex] = useState(0)
+  const [isLandscape, setIsLandscape] = useState(false)
+  const [selectedStyle, setSelectedStyle] = useState('handwritten')
+  const [signatureValue, setSignatureValue] = useState('')
 
   useEffect(() => {
     const savedKey = getApiKey()
     if (savedKey) {
       setApiKeyValue(savedKey)
-      // If user already has an API key, show manual entry section
-      setShowManualEntry(true)
     }
+    setSelectedPaperIndex(getPaperSizeIndex())
+    setIsLandscape(getPaperOrientation())
+    setSelectedStyle(getImageStyle())
+    setSignatureValue(getSignature())
   }, [])
 
-  // 显示的值：显示模式下显示真实值，隐藏模式下显示 mask
-  const displayValue = useMemo(() => {
-    return showKey ? apiKeyValue : '•'.repeat(apiKeyValue?.length || 0)
-  }, [showKey, apiKeyValue])
-
   const handleInput = useCallback((e) => {
-    // 只有在显示模式下才允许编辑
-    if (showKey) {
-      setApiKeyValue(e.detail.value)
-    }
-  }, [showKey])
+    setApiKeyValue(e.detail.value)
+  }, [])
 
   const handleSave = () => {
     if (!apiKeyValue.trim()) {
-      Taro.showToast({
-        title: t('pleaseInputApiKey'),
-        icon: 'none'
-      })
+      Taro.showToast({ title: '请输入 API Key', icon: 'none' })
       return
     }
-
     setApiKey(apiKeyValue.trim())
-    Taro.showToast({
-      title: t('generateSuccess'),
-      icon: 'success'
-    })
-
-    // 延迟返回
-    setTimeout(() => {
-      Taro.navigateBack()
-    }, 1500)
+    setIsEditing(false)
+    Taro.showToast({ title: '已保存', icon: 'success' })
   }
 
   const handleClear = () => {
     Taro.showModal({
-      title: t('confirmClear'),
-      content: t('confirmClearContent'),
+      title: '确认清除',
+      content: '确定要清除 API Key 吗？',
       success: (res) => {
         if (res.confirm) {
           setApiKey('')
           setApiKeyValue('')
-          Taro.showToast({
-            title: t('cleared'),
-            icon: 'success'
-          })
+          setIsEditing(true)
+          Taro.showToast({ title: '已清除', icon: 'success' })
         }
       }
     })
   }
 
-  const toggleShowKey = () => {
-    setShowKey(!showKey)
+  const handlePaperSizeChange = (index: number) => {
+    setSelectedPaperIndex(index)
+    setPaperSizeIndex(index)
   }
 
-  // 处理手机号注册/登录
-  const handlePhoneRegister = async () => {
-    if (!phone.trim()) {
-      Taro.showToast({
-        title: t('pleaseInputPhone'),
-        icon: 'none'
-      })
-      return
-    }
+  const handleOrientationChange = (landscape: boolean) => {
+    setIsLandscape(landscape)
+    setPaperOrientation(landscape)
+  }
 
-    // 简单的手机号验证
-    const phoneRegex = /^1[3-9]\d{9}$/
-    if (!phoneRegex.test(phone.trim())) {
-      Taro.showToast({
-        title: t('pleaseInputValidPhone'),
-        icon: 'none'
-      })
-      return
-    }
+  const handleStyleChange = (styleId: string) => {
+    setSelectedStyle(styleId)
+    setImageStyle(styleId)
+  }
 
-    setIsRegistering(true)
-    setErrorMessage('')
+  const handleSignatureInput = useCallback((e) => {
+    const value = e.detail.value
+    setSignatureValue(value)
+    setSignature(value)
+  }, [])
 
-    try {
-      // 先尝试注册
-      console.log('Attempting registration with phone:', phone.trim())
-      const registerResponse = await registerUser(phone.trim())
-      console.log('Register response:', registerResponse)
-      
-      if (registerResponse.success && registerResponse.result?.apiKey) {
-        // 注册成功，保存 API Key
-        console.log('Registration successful')
-        setApiKey(registerResponse.result.apiKey)
-        setApiKeyValue(registerResponse.result.apiKey)
-        Taro.showToast({
-          title: t('registerSuccess'),
-          icon: 'success',
-          duration: 2000
-        })
-        
-        // 延迟返回
-        setTimeout(() => {
-          Taro.navigateBack()
-        }, 2000)
-        return
-      }
+  const getAspectRatio = (): string => {
+    const paper = PAPER_SIZES[selectedPaperIndex]
+    return isLandscape ? paper.landscape : paper.portrait
+  }
 
-      // 如果注册失败，检查错误信息
-      if (!registerResponse.success) {
-        console.log('Registration failed:', registerResponse.message)
-        // 检查是否是"用户在其他渠道已存在"的错误
-        if (registerResponse.message && (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在'))) {
-          console.log('User registered in other channel')
-          setErrorMessage(registerResponse.message)
-          setShowManualEntry(true) // Show manual API key entry section
-          Taro.showModal({
-            title: t('tip'),
-            content: t('otherChannelWarning'),
-            showCancel: false
-          })
-          return
+  const hasKey = apiKeyValue && apiKeyValue.length > 0
+
+  const openRegister = () => {
+    const url = 'https://fangzhou.wanjiedata.com/login?inviteCode=xO9h1BTA'
+    if (process.env.TARO_ENV === 'h5') {
+      window.open(url, '_blank')
+    } else {
+      Taro.setClipboardData({
+        data: url,
+        success: () => {
+          Taro.showToast({ title: '链接已复制', icon: 'none', duration: 2000 })
         }
-        
-        // 其他错误，尝试用 getUserKey 查询（可能是已注册用户）
-        console.log('Trying getUserKey as fallback')
-        try {
-          const getUserResponse = await getUserKey(phone.trim())
-          console.log('GetUserKey response:', getUserResponse)
-          
-          if (getUserResponse.success && getUserResponse.result?.apiKey) {
-            // 查询成功，保存 API Key
-            console.log('GetUserKey successful')
-            setApiKey(getUserResponse.result.apiKey)
-            setApiKeyValue(getUserResponse.result.apiKey)
-            Taro.showToast({
-              title: t('loginSuccess'),
-              icon: 'success',
-              duration: 2000
-            })
-            
-            setTimeout(() => {
-              Taro.navigateBack()
-            }, 2000)
-            return
-          } else {
-            // getUserKey 也失败，显示错误信息
-            console.log('GetUserKey failed:', getUserResponse.message)
-            setErrorMessage(getUserResponse.message || registerResponse.message || t('saveFailed'))
-          }
-        } catch (getUserError) {
-          // getUserKey 请求失败，显示原始注册错误
-          console.error('GetUserKey error:', getUserError)
-          setErrorMessage(registerResponse.message || (getUserError instanceof Error ? getUserError.message : t('saveFailed')))
-        }
-      }
-    } catch (error) {
-      console.error('Registration error:', error)
-      setErrorMessage(error instanceof Error ? error.message : t('saveFailed'))
-    } finally {
-      setIsRegistering(false)
+      })
     }
   }
 
   return (
-    <View className='settings-container'>
-      <View className='settings-header'>
-        <Text className='settings-title'>🔐 {t('settingsTitle')}</Text>
-        <Text className='settings-desc'>
-          {t('settingsDesc')}
-        </Text>
-      </View>
-
-      {/* Phone Registration Section - Always show if no manual entry needed */}
-      {!showManualEntry && (
-        <View className='settings-section'>
-          <Text className='section-title'>📱 {t('phoneLabel')}</Text>
-          <Text className='section-desc'>{t('registerHelp1')}</Text>
-          
-          <View className='input-wrapper'>
-            <Input
-              className='phone-input'
-              type='number'
-              maxlength={11}
-              placeholder={t('phonePlaceholder')}
-              value={phone}
-              onInput={(e) => setPhone(e.detail.value)}
-              disabled={isRegistering}
-            />
-          </View>
-
-          <Button 
-            className={`register-btn ${isRegistering ? 'loading' : ''}`}
-            onClick={handlePhoneRegister}
-            disabled={isRegistering}
-          >
-            {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
-          </Button>
-
-          {errorMessage && (
-            <View className='error-message'>
-              <Text className='error-text'>⚠️ {errorMessage}</Text>
-            </View>
+    <View className='settings-page'>
+      {/* API Key 区域 */}
+      <View className='card api-card'>
+        <View className='card-header'>
+          <Text className='card-title'>🔐 API Key</Text>
+          {hasKey && !isEditing && (
+            <Text className='status-tag success'>✓ 已配置</Text>
           )}
         </View>
-      )}
-
-      {/* Manual API Key Section - Only show after "other channel" error or if user already has a key */}
-      {showManualEntry && (
-        <View className='settings-section'>
-          <View className='section-header'>
-            <Text className='section-title'>{t('apiKeyLabel')}</Text>
-            <View className='toggle-visibility' onClick={toggleShowKey}>
-              <Text>{showKey ? `🙈 ${t('hideKey')}` : `👁️ ${t('showKey')}`}</Text>
+        
+        {hasKey && !isEditing ? (
+          <View className='api-configured'>
+            <View className='api-actions'>
+              <View className='action-btn primary' onClick={() => setIsEditing(true)}>
+                <Text>修改</Text>
+              </View>
             </View>
           </View>
-          <Text className='section-desc'>{t('manualEntryDesc')}</Text>
-
-          <View className='input-wrapper'>
+        ) : (
+          <View className='api-input-area'>
             <Textarea
               className='api-input'
-              placeholder={t('apiKeyPlaceholder')}
-              value={displayValue}
+              placeholder='粘贴您的 API Key'
+              value={apiKeyValue}
               onInput={handleInput}
               maxlength={-1}
-              disabled={!showKey && (apiKeyValue?.length || 0) > 0}
+              autoHeight
             />
-          </View>
-
-          <View className='button-group'>
-            <Button className='save-btn' onClick={handleSave}>
-              💾 {t('saveSettings')}
-            </Button>
-            {apiKeyValue && (
-              <Button className='logout-btn' onClick={handleClear}>
-                🚪 {t('logoutButton')}
-              </Button>
+            <View className='api-actions'>
+              <Button className='save-btn' onClick={handleSave}>保存</Button>
+              {isEditing && hasKey && (
+                <>
+                  <View className='action-btn danger' onClick={handleClear}>
+                    <Text>清除</Text>
+                  </View>
+                  <View className='action-btn' onClick={() => setIsEditing(false)}>
+                    <Text>取消</Text>
+                  </View>
+                </>
+              )}
+            </View>
+            {/* 注册提示 - 仅在没有 API Key 时显示 */}
+            {!hasKey && (
+              <View className='register-tip' onClick={openRegister}>
+                <Text className='tip-text'>🎁 新用户注册送16元，可生成约20张图</Text>
+                <Text className='tip-arrow'>去注册 →</Text>
+              </View>
+            )}
+            {/* 编辑模式下显示注册链接 */}
+            {isEditing && hasKey && (
+              <View className='register-link' onClick={openRegister}>
+                <Text className='link-text'>获取新的 API Key →</Text>
+              </View>
             )}
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
-      <View className='info-section'>
-        <Text className='info-title'>ℹ️ {t('infoTitle')}</Text>
-        <Text className='info-text'>
-          {t('infoText1')}{'\n'}
-          {t('infoText2')}{'\n'}
-          {t('infoText3')}
-        </Text>
+      {/* 图片设置 - 紧凑布局 */}
+      <View className='card'>
+        <Text className='card-title'>📐 图片设置</Text>
+        
+        {/* 风格选择 */}
+        <View className='setting-row'>
+          <Text className='row-label'>风格</Text>
+          <View className='style-options'>
+            {STYLE_OPTIONS.map((style) => (
+              <View
+                key={style.id}
+                className={`style-chip ${selectedStyle === style.id ? 'active' : ''}`}
+                onClick={() => handleStyleChange(style.id)}
+              >
+                <Text>{style.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        
+        {/* 尺寸选择 - 横向排列 */}
+        <View className='setting-row'>
+          <Text className='row-label'>尺寸</Text>
+          <View className='size-options'>
+            {PAPER_SIZES.map((size, index) => (
+              <View
+                key={index}
+                className={`size-chip ${selectedPaperIndex === index ? 'active' : ''}`}
+                onClick={() => handlePaperSizeChange(index)}
+              >
+                <Text>{size.name}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* 方向选择 */}
+        <View className='setting-row'>
+          <Text className='row-label'>方向</Text>
+          <View className='orientation-options'>
+            <View
+              className={`orient-chip ${!isLandscape ? 'active' : ''}`}
+              onClick={() => handleOrientationChange(false)}
+            >
+              <Text>竖版</Text>
+            </View>
+            <View
+              className={`orient-chip ${isLandscape ? 'active' : ''}`}
+              onClick={() => handleOrientationChange(true)}
+            >
+              <Text>横版</Text>
+            </View>
+          </View>
+          <Text className='ratio-text'>{getAspectRatio()}</Text>
+        </View>
+
+        {/* 个性签名 */}
+        <View className='setting-row signature-row'>
+          <Text className='row-label'>签名</Text>
+          <Input
+            className='signature-input'
+            placeholder='输入昵称，将显示在图片右下角'
+            value={signatureValue}
+            onInput={handleSignatureInput}
+            maxlength={20}
+          />
+        </View>
+        {signatureValue && (
+          <View className='signature-preview'>
+            <Text className='preview-text'>签名预览: {signatureValue} @Gemini 3</Text>
+          </View>
+        )}
+      </View>
+
+      {/* 底部说明 - 简化 */}
+      <View className='footer-info'>
+        <Text className='footer-text'>API Key 仅保存在本地 · 模型: gemini-3-pro</Text>
       </View>
     </View>
   )
