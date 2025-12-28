@@ -8,6 +8,7 @@ import {
   getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
   registerUser, getUserKey, setApiKey, parseDataUrl, getMimeTypeFromPath
 } from '../../services/api'
+import { useTranslation } from '../../utils/i18n'
 import './index.scss'
 
 // 历史图片最大数量
@@ -32,6 +33,8 @@ const PAPER_SIZES = [
 ]
 
 export default function Index() {
+  const { t } = useTranslation()
+  
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState('')
@@ -108,13 +111,13 @@ export default function Index() {
   const handleDeleteHistory = (e: any, imageId: string) => {
     e.stopPropagation()
     Taro.showModal({
-      title: '确认删除',
-      content: '确定要删除这张图片吗？',
+      title: t('confirmDelete'),
+      content: t('confirmDeleteMessage'),
       success: (res) => {
         if (res.confirm) {
           deleteImageFromHistory(imageId)
           setHistoryImages(prev => prev.filter(img => img.id !== imageId))
-          Taro.showToast({ title: '已删除', icon: 'success' })
+          Taro.showToast({ title: t('deleted'), icon: 'success' })
         }
       }
     })
@@ -198,7 +201,7 @@ export default function Index() {
         
         // 显示加载提示
         setIsUploading(true)
-        Taro.showLoading({ title: '读取图片中...', mask: true })
+        Taro.showLoading({ title: t('readingImage'), mask: true })
         
         // 使用统一的文件读取逻辑
         Taro.getFileSystemManager().readFile({
@@ -221,17 +224,17 @@ export default function Index() {
             
             setIsUploading(false)
             Taro.hideLoading()
-            Taro.showToast({ title: '图片上传成功', icon: 'success', duration: 1500 })
+            Taro.showToast({ title: t('imageUploadSuccess'), icon: 'success', duration: 1500 })
           },
           fail: () => {
             setIsUploading(false)
             Taro.hideLoading()
-            Taro.showToast({ title: '读取图片失败', icon: 'none' })
+            Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
           }
         })
       },
       fail: () => {
-        Taro.showToast({ title: '选择图片失败', icon: 'none' })
+        Taro.showToast({ title: t('imageSelectFailed'), icon: 'none' })
       }
     })
   }
@@ -277,10 +280,10 @@ export default function Index() {
     // 检查历史图片数量是否已满
     if (historyImages.length >= MAX_HISTORY_IMAGES) {
       Taro.showModal({
-        title: '历史图片已满',
-        content: `最多只能保存 ${MAX_HISTORY_IMAGES} 张图片，请先删除一些历史图片再生成新的。`,
+        title: t('historyFull'),
+        content: t('historyFullMessage'),
         showCancel: false,
-        confirmText: '知道了'
+        confirmText: t('confirm')
       })
       return
     }
@@ -413,10 +416,10 @@ export default function Index() {
 
       {/* 输入区域 */}
       <View className='input-section'>
-        <Text className='section-title'>📝 输入{getStyleName()}主题</Text>
+        <Text className='section-title'>📝 {t('inputPromptTitle')}</Text>
         <Textarea
           className='prompt-input'
-          placeholder={selectedImageId ? '输入修改要求，例如：让图片更明亮，添加更多花朵' : '例如：春天来了，花儿开放'}
+          placeholder={selectedImageId ? t('modifyPromptPlaceholder') : t('inputPromptPlaceholder')}
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -434,7 +437,7 @@ export default function Index() {
             disabled={isGenerating || isUploading}
             loading={isUploading}
           >
-            {isUploading ? '⏳ 读取中...' : '📷 上传图片进行修改'}
+            {isUploading ? `⏳ ${t('uploading')}` : `📷 ${t('uploadImageButton')}`}
           </Button>
         </View>
       </View>
@@ -442,7 +445,7 @@ export default function Index() {
       {/* 上传的图片区域 */}
       {uploadedImages.length > 0 && (
         <View className='uploaded-section'>
-          <Text className='section-title'>📤 上传的图片（点击图片选择参与生成）</Text>
+          <Text className='section-title'>📤 {t('uploadedImagesTitle')}</Text>
           <View className='uploaded-list'>
             {uploadedImages.map((img) => (
               <View 
@@ -509,7 +512,7 @@ export default function Index() {
       {/* 历史图片区域 */}
       {historyImages.length > 0 && (
         <View className='history-section'>
-          <Text className='section-title'>📸 历史图片（最多保存3张，点击选择参与生成）</Text>
+          <Text className='section-title'>📸 {t('historyImagesTitle')}</Text>
           <View className='history-list'>
             {historyImages.map((img) => (
               <View 
