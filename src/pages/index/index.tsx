@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Textarea, Image, Button } from '@tarojs/components'
 import { generateImage, hasApiKey } from '../../services/api'
 import { useTranslation } from '../../utils/i18n'
@@ -26,6 +26,11 @@ export default function Index() {
   useEffect(() => {
     setHasKey(hasApiKey())
   }, [])
+
+  // 页面显示时重新检查 API Key（处理从设置页返回或注册后返回的情况）
+  useDidShow(() => {
+    setHasKey(hasApiKey())
+  })
 
   // 跳转到设置页面
   const goToSettings = () => {
