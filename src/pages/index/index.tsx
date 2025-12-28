@@ -418,21 +418,71 @@ export default function Index() {
       }
     } else {
       // 小程序环境
-      Taro.saveImageToPhotosAlbum({
-        filePath: imageUrl,
-        success: () => {
-          Taro.showToast({
-            title: '保存成功！',
-            icon: 'success'
+      // 检查是否是 base64 data URL
+      const parsed = parseDataUrl(imageUrl)
+      if (parsed) {
+        // 是 base64 数据，需要先写入临时文件
+        const fs = Taro.getFileSystemManager()
+        const filePath = `${Taro.env.USER_DATA_PATH}/temp_${Date.now()}.png`
+        
+        try {
+          // 写入临时文件
+          fs.writeFileSync(filePath, parsed.data, 'base64')
+          
+          // 保存到相册
+          Taro.saveImageToPhotosAlbum({
+            filePath: filePath,
+            success: () => {
+              // 保存成功后删除临时文件
+              try {
+                fs.unlinkSync(filePath)
+              } catch (e) {
+                console.warn('Failed to delete temp file:', e)
+              }
+              Taro.showToast({
+                title: '保存成功！',
+                icon: 'success'
+              })
+            },
+            fail: (err) => {
+              // 保存失败也删除临时文件
+              try {
+                fs.unlinkSync(filePath)
+              } catch (e) {
+                console.warn('Failed to delete temp file:', e)
+              }
+              console.error('Save to album failed:', err)
+              Taro.showToast({
+                title: '保存失败',
+                icon: 'none'
+              })
+            }
           })
-        },
-        fail: () => {
+        } catch (e) {
+          console.error('Write temp file failed:', e)
           Taro.showToast({
             title: '保存失败',
             icon: 'none'
           })
         }
-      })
+      } else {
+        // 不是 base64，直接保存
+        Taro.saveImageToPhotosAlbum({
+          filePath: imageUrl,
+          success: () => {
+            Taro.showToast({
+              title: '保存成功！',
+              icon: 'success'
+            })
+          },
+          fail: () => {
+            Taro.showToast({
+              title: '保存失败',
+              icon: 'none'
+            })
+          }
+        })
+      }
     }
   }
 
