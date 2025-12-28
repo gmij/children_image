@@ -156,7 +156,8 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
+          responseModalities: ['TEXT', 'IMAGE'],
+          aspect_ratio: '2:3'
         }
       })
     })
@@ -236,7 +237,8 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
+          responseModalities: ['TEXT', 'IMAGE'],
+          aspect_ratio: '2:3'
         }
       })
     })
