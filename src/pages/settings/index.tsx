@@ -6,8 +6,7 @@ import {
   getPaperSizeIndex, setPaperSizeIndex, 
   getPaperOrientation, setPaperOrientation,
   getImageStyle, setImageStyle,
-  getSignature, setSignature,
-  registerUser, getUserKey
+  getSignature, setSignature
 } from '../../services/api'
 import { useTranslation } from '../../utils/i18n'
 import './index.scss'
@@ -38,16 +37,11 @@ export default function Settings() {
   const [isLandscape, setIsLandscape] = useState(false)
   const [selectedStyle, setSelectedStyle] = useState('handwritten')
   const [signatureValue, setSignatureValue] = useState('')
-  const [phone, setPhone] = useState('')
-  const [isRegistering, setIsRegistering] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [showManualEntry, setShowManualEntry] = useState(false)
 
   useEffect(() => {
     const savedKey = getApiKey()
     if (savedKey) {
       setApiKeyValue(savedKey)
-      setShowManualEntry(true) // If user has API key, show manual entry
     }
     setSelectedPaperIndex(getPaperSizeIndex())
     setIsLandscape(getPaperOrientation())
@@ -108,107 +102,8 @@ export default function Settings() {
     })
   }
 
-  // 处理手机号注册/登录
-  const handlePhoneRegister = async () => {
-    if (!phone.trim()) {
-      Taro.showToast({
-        title: t('pleaseInputPhone'),
-        icon: 'none'
-      })
-      return
-    }
-
-    // 简单的手机号验证
-    const phoneRegex = /^1[3-9]\d{9}$/
-    if (!phoneRegex.test(phone.trim())) {
-      Taro.showToast({
-        title: t('pleaseInputValidPhone'),
-        icon: 'none'
-      })
-      return
-    }
-
-    setIsRegistering(true)
-    setErrorMessage('')
-
-    try {
-      // 先尝试注册
-      const registerResponse = await registerUser(phone.trim())
-      
-      if (registerResponse.success && registerResponse.result?.apiKey) {
-        // 注册成功，保存 API Key
-        setApiKey(registerResponse.result.apiKey)
-        setApiKeyValue(registerResponse.result.apiKey)
-        setShowManualEntry(true)
-        Taro.showToast({
-          title: t('registerSuccess'),
-          icon: 'success',
-          duration: 2000
-        })
-        setIsRegistering(false)
-        return
-      }
-
-      // 如果注册失败，检查错误信息
-      if (!registerResponse.success) {
-        // 检查是否是"用户在其他渠道已存在"的错误
-        if (registerResponse.message && (
-          registerResponse.message.includes('其他渠道') || 
-          registerResponse.message.includes('其它渠道') || 
-          registerResponse.message.includes('别的渠道') || 
-          registerResponse.message.includes('已经存在')
-        )) {
-          setErrorMessage(registerResponse.message)
-          setShowManualEntry(true)
-          Taro.showModal({
-            title: t('tip'),
-            content: t('otherChannelWarning'),
-            showCancel: false
-          })
-          setIsRegistering(false)
-          return
-        }
-        
-        // 其他错误，尝试用 getUserKey 查询（可能是已注册用户）
-        try {
-          const getUserResponse = await getUserKey(phone.trim())
-          
-          if (getUserResponse.success && getUserResponse.result?.apiKey) {
-            // 查询成功，保存 API Key
-            setApiKey(getUserResponse.result.apiKey)
-            setApiKeyValue(getUserResponse.result.apiKey)
-            setShowManualEntry(true)
-            Taro.showToast({
-              title: t('loginSuccess'),
-              icon: 'success',
-              duration: 2000
-            })
-            setIsRegistering(false)
-            return
-          }
-        } catch (getUserError) {
-          console.error('getUserKey error:', getUserError)
-        }
-        
-        // 如果都失败了，显示错误信息
-        setErrorMessage(registerResponse.message || t('networkError'))
-        Taro.showToast({
-          title: registerResponse.message || t('networkError'),
-          icon: 'none',
-          duration: 3000
-        })
-      }
-    } catch (error) {
-      console.error('Registration error:', error)
-      setErrorMessage(t('networkError'))
-      Taro.showToast({
-        title: t('networkError'),
-        icon: 'none',
-        duration: 3000
-      })
-    } finally {
-      setIsRegistering(false)
-    }
+  const goToRegister = () => {
+    Taro.navigateTo({ url: '/pages/register/index' })
   }
 
   const handlePaperSizeChange = (index: number) => {
@@ -264,82 +159,48 @@ export default function Settings() {
           )}
         </View>
         
-        {/* Phone Registration Section - Show if no API key or manual entry not shown */}
-        {!hasKey && !showManualEntry && (
-          <View className='phone-register-section'>
-            <Text className='register-desc'>📱 {t('phoneLabel')}</Text>
-            <Input
-              className='phone-input'
-              type='number'
-              maxlength={11}
-              placeholder={t('phonePlaceholder')}
-              value={phone}
-              onInput={(e) => setPhone(e.detail.value)}
-              disabled={isRegistering}
-            />
-            <Button 
-              className='register-btn'
-              onClick={handlePhoneRegister}
-              disabled={isRegistering}
-            >
-              {isRegistering ? `⏳ ${t('processing')}` : `✨ ${t('registerButton')}`}
-            </Button>
-            {errorMessage && (
-              <View className='error-message'>
-                <Text className='error-text'>⚠️ {errorMessage}</Text>
+        {hasKey && !isEditing ? (
+          <View className='api-configured'>
+            <View className='api-actions'>
+              <View className='action-btn primary' onClick={() => setIsEditing(true)}>
+                <Text>修改</Text>
               </View>
-            )}
-            <View className='switch-manual' onClick={() => setShowManualEntry(true)}>
-              <Text className='switch-text'>{t('haveApiKey')} {t('directConfig')}</Text>
+              <View className='action-btn danger' onClick={handleLogout}>
+                <Text>退出登录</Text>
+              </View>
             </View>
           </View>
-        )}
-
-        {/* Manual API Key Entry - Show if has key or manual entry mode */}
-        {(hasKey || showManualEntry) && (
-          <>
-            {hasKey && !isEditing ? (
-              <View className='api-configured'>
-                <View className='api-actions'>
-                  <View className='action-btn primary' onClick={() => setIsEditing(true)}>
-                    <Text>修改</Text>
+        ) : (
+          <View className='api-input-area'>
+            <Textarea
+              className='api-input'
+              placeholder={t('apiKeyPlaceholder')}
+              value={apiKeyValue}
+              onInput={handleInput}
+              maxlength={-1}
+              autoHeight
+            />
+            <View className='api-actions'>
+              <Button className='save-btn' onClick={handleSave}>{t('saveSettings')}</Button>
+              {isEditing && hasKey && (
+                <>
+                  <View className='action-btn danger' onClick={handleClear}>
+                    <Text>清除</Text>
                   </View>
-                  <View className='action-btn danger' onClick={handleLogout}>
-                    <Text>退出登录</Text>
+                  <View className='action-btn' onClick={() => setIsEditing(false)}>
+                    <Text>取消</Text>
                   </View>
-                </View>
-              </View>
-            ) : (
-              <View className='api-input-area'>
-                <Textarea
-                  className='api-input'
-                  placeholder={t('apiKeyPlaceholder')}
-                  value={apiKeyValue}
-                  onInput={handleInput}
-                  maxlength={-1}
-                  autoHeight
-                />
-                <View className='api-actions'>
-                  <Button className='save-btn' onClick={handleSave}>{t('saveSettings')}</Button>
-                  {isEditing && hasKey && (
-                    <>
-                      <View className='action-btn danger' onClick={handleClear}>
-                        <Text>清除</Text>
-                      </View>
-                      <View className='action-btn' onClick={() => setIsEditing(false)}>
-                        <Text>取消</Text>
-                      </View>
-                    </>
-                  )}
-                </View>
-                {!hasKey && showManualEntry && (
-                  <View className='switch-manual' onClick={() => setShowManualEntry(false)}>
-                    <Text className='switch-text'>← {t('newUserRegister')}</Text>
-                  </View>
-                )}
+                </>
+              )}
+            </View>
+            {/* 新用户注册提示 */}
+            {!hasKey && (
+              <View className='register-tip' onClick={goToRegister}>
+                <Text className='tip-text'>🎁 {t('newUserRegister')}</Text>
+                <Text className='tip-arrow'>→</Text>
               </View>
             )}
-          </>
+          </View>
         )}
       </View>
 
