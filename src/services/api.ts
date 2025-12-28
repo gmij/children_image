@@ -218,6 +218,7 @@ export function parseDataUrl(dataUrl: string): { mimeType: string; data: string 
 /**
  * 保存 base64 图片到本地文件（仅小程序环境）
  * 返回本地文件路径
+ * @private 内部函数，仅供 addImageToHistory 使用
  */
 function saveImageToLocalFile(imageUrl: string): string {
   if (process.env.TARO_ENV === 'h5') {
@@ -234,8 +235,13 @@ function saveImageToLocalFile(imageUrl: string): string {
 
   // 保存到永久文件
   const fs = wx.getFileSystemManager()
-  const ext = parsed.mimeType.split('/')[1] || 'png'
-  const filePath = `${wx.env.USER_DATA_PATH}/history_${Date.now()}.${ext}`
+  // 从 MIME 类型中提取扩展名，添加验证
+  const mimeParts = parsed.mimeType.split('/')
+  const ext = (mimeParts.length === 2 && mimeParts[1]) ? mimeParts[1] : 'png'
+  // 使用时间戳和随机数确保唯一性
+  const timestamp = Date.now()
+  const random = Math.floor(Math.random() * 10000)
+  const filePath = `${wx.env.USER_DATA_PATH}/history_${timestamp}_${random}.${ext}`
 
   try {
     fs.writeFileSync(filePath, parsed.data, 'base64')
