@@ -526,20 +526,23 @@ export default function Index() {
               <View 
                 key={img.id} 
                 className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
               >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
-                  onClick={() => setPreviewHistoryImage(img.url)}
+                  onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
-                {/* Left selection indicator */}
-                <View 
-                  className='history-select-left'
-                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                >
-                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
-                </View>
+                {/* Left selection indicator - only show when selected */}
+                {selectedImageId === img.id && (
+                  <View 
+                    className='history-select-left'
+                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                  >
+                    <Text>✓</Text>
+                  </View>
+                )}
                 {/* Right delete button */}
                 <View className='history-actions'>
                   <View 
@@ -556,20 +559,23 @@ export default function Index() {
               <View 
                 key={img.id} 
                 className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
               >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
-                  onClick={() => setPreviewHistoryImage(img.url)}
+                  onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
-                {/* Left selection indicator */}
-                <View 
-                  className='history-select-left'
-                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                >
-                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
-                </View>
+                {/* Left selection indicator - only show when selected */}
+                {selectedImageId === img.id && (
+                  <View 
+                    className='history-select-left'
+                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                  >
+                    <Text>✓</Text>
+                  </View>
+                )}
                 {/* Right delete button */}
                 <View className='history-actions'>
                   <View 
