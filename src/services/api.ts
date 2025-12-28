@@ -297,9 +297,56 @@ function getFriendlyErrorMessage(error: unknown): string {
 }
 
 /**
+ * 从 Data URL 提取 base64 数据和 MIME 类型
+ */
+export function parseDataUrl(dataUrl: string): { data: string; mimeType: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  if (match) {
+    return {
+      mimeType: match[1],
+      data: match[2]
+    }
+  }
+  return null
+}
+
+/**
+ * 将文件路径转换为 base64（仅用于小程序环境）
+ */
+export async function fileToBase64(filePath: string): Promise<{ data: string; mimeType: string } | null> {
+  if (process.env.TARO_ENV === 'weapp') {
+    return new Promise((resolve) => {
+      wx.getFileSystemManager().readFile({
+        filePath,
+        encoding: 'base64',
+        success: (res) => {
+          // 根据文件扩展名推断 MIME 类型
+          let mimeType = 'image/png'
+          if (filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg')) {
+            mimeType = 'image/jpeg'
+          } else if (filePath.toLowerCase().endsWith('.gif')) {
+            mimeType = 'image/gif'
+          } else if (filePath.toLowerCase().endsWith('.webp')) {
+            mimeType = 'image/webp'
+          }
+          resolve({
+            data: res.data as string,
+            mimeType
+          })
+        },
+        fail: () => {
+          resolve(null)
+        }
+      })
+    })
+  }
+  return null
+}
+
+/**
  * 生成手抄报提示词增强
  */
-function enhancePrompt(userPrompt: string): string {
+function enhancePrompt(userPrompt: string, hasBaseImage: boolean = false): string {
   const style = getImageStyle()
   const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.handwritten
   const signature = getSignature()
@@ -309,6 +356,30 @@ function enhancePrompt(userPrompt: string): string {
     return userPrompt
   }
   
+  // 如果有基础图片（图生图模式）
+  if (hasBaseImage) {
+    let prompt = `请基于提供的图片进行修改和创作。修改要求：${userPrompt}
+
+风格要求：${stylePrompt}
+
+要求：
+- 保留原图的主要元素和构图
+- 根据修改要求进行相应的调整和优化
+- 画面色彩鲜艳、活泼可爱，适合儿童
+- 内容适合幼儿园年龄段的孩子
+- 图片风格要温馨、童趣
+- 整体布局美观、有创意`
+
+    // 如果有签名，添加签名要求
+    if (signature.trim()) {
+      prompt += `
+- 请在图片右下角用艺术字体添加签名：${signature} @Gemini 3`
+    }
+
+    return prompt
+  }
+  
+  // 文生图模式（原有逻辑）
   let prompt = `请为幼儿园小朋友生成一张精美的图片。主题是：${userPrompt}
 
 风格要求：${stylePrompt}
@@ -379,6 +450,8 @@ export interface GenerateCallbacks {
  */
 export interface GenerateOptions {
   aspectRatio?: string  // 如 '2:3', '3:2', '1:1', '16:9', '9:16'
+  baseImage?: string    // base64 格式的基础图片（用于图生图）
+  baseImageMimeType?: string  // 图片的 MIME 类型，如 'image/png', 'image/jpeg'
 }
 
 /**
@@ -399,10 +472,29 @@ export async function generateImage(
 
   callbacks.onStart?.()
 
-  const enhancedPrompt = enhancePrompt(prompt)
+  const hasBaseImage = !!(options?.baseImage)
+  const enhancedPrompt = enhancePrompt(prompt, hasBaseImage)
   const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
+    // 构建请求的 parts 数组
+    const parts: any[] = []
+    
+    // 如果有基础图片，先添加图片
+    if (options?.baseImage && options?.baseImageMimeType) {
+      parts.push({
+        inlineData: {
+          mimeType: options.baseImageMimeType,
+          data: options.baseImage
+        }
+      })
+    }
+    
+    // 添加文本提示词
+    parts.push({
+      text: enhancedPrompt
+    })
+
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
@@ -412,11 +504,7 @@ export async function generateImage(
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              {
-                text: enhancedPrompt
-              }
-            ]
+            parts: parts
           }
         ],
         generationConfig: {
@@ -484,10 +572,29 @@ export async function generateImageNonStream(
 
   callbacks.onStart?.()
 
-  const enhancedPrompt = enhancePrompt(prompt)
+  const hasBaseImage = !!(options?.baseImage)
+  const enhancedPrompt = enhancePrompt(prompt, hasBaseImage)
   const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
+    // 构建请求的 parts 数组
+    const parts: any[] = []
+    
+    // 如果有基础图片，先添加图片
+    if (options?.baseImage && options?.baseImageMimeType) {
+      parts.push({
+        inlineData: {
+          mimeType: options.baseImageMimeType,
+          data: options.baseImage
+        }
+      })
+    }
+    
+    // 添加文本提示词
+    parts.push({
+      text: enhancedPrompt
+    })
+
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
       method: 'POST',
       headers: {
@@ -497,11 +604,7 @@ export async function generateImageNonStream(
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              {
-                text: enhancedPrompt
-              }
-            ]
+            parts: parts
           }
         ],
         generationConfig: {

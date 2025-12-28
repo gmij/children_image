@@ -6,7 +6,7 @@ import {
   getPaperSizeIndex, getPaperOrientation, 
   getImageStyle, STYLE_NAMES,
   getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
-  registerUser, getUserKey, setApiKey
+  registerUser, getUserKey, setApiKey, parseDataUrl
 } from '../../services/api'
 import './index.scss'
 
@@ -41,6 +41,10 @@ export default function Index() {
   const [currentStyle, setCurrentStyle] = useState('handwritten') // 当前风格
   const [historyImages, setHistoryImages] = useState<HistoryImage[]>([]) // 历史图片
   const [previewHistoryImage, setPreviewHistoryImage] = useState<string | null>(null) // 预览历史图片
+  
+  // 基础图片（用于图生图）
+  const [baseImage, setBaseImage] = useState<string>('')
+  const [baseImageMimeType, setBaseImageMimeType] = useState<string>('')
   
   // 登录弹窗状态
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -177,6 +181,96 @@ export default function Index() {
     })
   }
 
+  // 上传本地图片
+  const handleUploadImage = () => {
+    Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFilePath = res.tempFilePaths[0]
+        
+        if (process.env.TARO_ENV === 'h5') {
+          // H5 环境：直接使用临时文件路径（已经是 base64 格式）
+          Taro.getFileSystemManager().readFile({
+            filePath: tempFilePath,
+            encoding: 'base64',
+            success: (fileRes: any) => {
+              // 获取文件信息来判断 MIME 类型
+              const file = res.tempFiles?.[0]
+              let mimeType = 'image/png'
+              if (file?.type) {
+                mimeType = file.type
+              } else {
+                // 根据文件扩展名推断
+                if (tempFilePath.toLowerCase().includes('.jpg') || tempFilePath.toLowerCase().includes('.jpeg')) {
+                  mimeType = 'image/jpeg'
+                } else if (tempFilePath.toLowerCase().includes('.gif')) {
+                  mimeType = 'image/gif'
+                } else if (tempFilePath.toLowerCase().includes('.webp')) {
+                  mimeType = 'image/webp'
+                }
+              }
+              
+              setBaseImage(fileRes.data)
+              setBaseImageMimeType(mimeType)
+              Taro.showToast({ title: '图片已选择', icon: 'success' })
+            },
+            fail: () => {
+              Taro.showToast({ title: '读取图片失败', icon: 'none' })
+            }
+          })
+        } else {
+          // 小程序环境
+          Taro.getFileSystemManager().readFile({
+            filePath: tempFilePath,
+            encoding: 'base64',
+            success: (fileRes: any) => {
+              // 根据文件扩展名推断 MIME 类型
+              let mimeType = 'image/png'
+              if (tempFilePath.toLowerCase().endsWith('.jpg') || tempFilePath.toLowerCase().endsWith('.jpeg')) {
+                mimeType = 'image/jpeg'
+              } else if (tempFilePath.toLowerCase().endsWith('.gif')) {
+                mimeType = 'image/gif'
+              } else if (tempFilePath.toLowerCase().endsWith('.webp')) {
+                mimeType = 'image/webp'
+              }
+              
+              setBaseImage(fileRes.data as string)
+              setBaseImageMimeType(mimeType)
+              Taro.showToast({ title: '图片已选择', icon: 'success' })
+            },
+            fail: () => {
+              Taro.showToast({ title: '读取图片失败', icon: 'none' })
+            }
+          })
+        }
+      },
+      fail: () => {
+        Taro.showToast({ title: '选择图片失败', icon: 'none' })
+      }
+    })
+  }
+
+  // 清除选择的基础图片
+  const handleClearBaseImage = () => {
+    setBaseImage('')
+    setBaseImageMimeType('')
+  }
+
+  // 使用历史图片进行二创
+  const handleModifyHistory = (imageUrl: string) => {
+    const parsed = parseDataUrl(imageUrl)
+    if (parsed) {
+      setBaseImage(parsed.data)
+      setBaseImageMimeType(parsed.mimeType)
+      setPrompt('') // 清空提示词，让用户输入新的修改要求
+      Taro.showToast({ title: '已选择该图片进行修改', icon: 'success' })
+    } else {
+      Taro.showToast({ title: '图片格式不支持', icon: 'none' })
+    }
+  }
+
   // 生成图片
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -221,6 +315,12 @@ export default function Index() {
       aspectRatio: getAspectRatio()
     }
 
+    // 如果有基础图片，添加到选项中
+    if (baseImage && baseImageMimeType) {
+      options.baseImage = baseImage
+      options.baseImageMimeType = baseImageMimeType
+    }
+
     // 调用非流式 API（文生图不支持流式输出）
     try {
       await generateImage(prompt, {
@@ -233,6 +333,9 @@ export default function Index() {
           // 生成完成后自动添加到历史
           const newImage = addImageToHistory(imageUrl)
           setHistoryImages(prev => [newImage, ...prev].slice(0, MAX_HISTORY_IMAGES))
+          // 清除基础图片
+          setBaseImage('')
+          setBaseImageMimeType('')
         },
         onError: (err) => {
           setError(err)
@@ -314,7 +417,7 @@ export default function Index() {
         <Text className='section-title'>📝 输入{getStyleName()}主题</Text>
         <Textarea
           className='prompt-input'
-          placeholder='例如：春天来了，花儿开放'
+          placeholder={baseImage ? '输入修改要求，例如：让图片更明亮，添加更多花朵' : '例如：春天来了，花儿开放'}
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -322,6 +425,29 @@ export default function Index() {
         />
         <View className='char-count'>
           <Text>{prompt.length}/200</Text>
+        </View>
+
+        {/* 上传图片区域 */}
+        <View className='upload-section'>
+          {!baseImage ? (
+            <Button className='upload-btn' onClick={handleUploadImage} disabled={isGenerating}>
+              📷 上传图片进行修改
+            </Button>
+          ) : (
+            <View className='base-image-preview'>
+              <View className='preview-header'>
+                <Text className='preview-label'>🖼️ 基础图片（将基于此图修改）</Text>
+                <View className='clear-btn' onClick={handleClearBaseImage}>
+                  <Text>✕</Text>
+                </View>
+              </View>
+              <Image
+                className='preview-image'
+                src={`data:${baseImageMimeType};base64,${baseImage}`}
+                mode='aspectFit'
+              />
+            </View>
+          )}
         </View>
       </View>
 
@@ -372,11 +498,19 @@ export default function Index() {
                   mode='aspectFill'
                   onClick={() => setPreviewHistoryImage(img.url)}
                 />
-                <View 
-                  className='history-delete'
-                  onClick={(e) => handleDeleteHistory(e, img.id)}
-                >
-                  <Text>×</Text>
+                <View className='history-actions'>
+                  <View 
+                    className='history-modify'
+                    onClick={(e) => { e.stopPropagation(); handleModifyHistory(img.url); }}
+                  >
+                    <Text>✏️</Text>
+                  </View>
+                  <View 
+                    className='history-delete'
+                    onClick={(e) => handleDeleteHistory(e, img.id)}
+                  >
+                    <Text>×</Text>
+                  </View>
                 </View>
               </View>
             ))}
