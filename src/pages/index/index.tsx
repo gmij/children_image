@@ -6,7 +6,7 @@ import {
   getPaperSizeIndex, getPaperOrientation, 
   getImageStyle, STYLE_NAMES,
   getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
-  registerUser, getUserKey, setApiKey, parseDataUrl
+  registerUser, getUserKey, setApiKey, parseDataUrl, getMimeTypeFromPath
 } from '../../services/api'
 import './index.scss'
 
@@ -189,62 +189,24 @@ export default function Index() {
       sourceType: ['album', 'camera'],
       success: (res) => {
         const tempFilePath = res.tempFilePaths[0]
+        const file = res.tempFiles?.[0]
         
-        if (process.env.TARO_ENV === 'h5') {
-          // H5 环境：直接使用临时文件路径（已经是 base64 格式）
-          Taro.getFileSystemManager().readFile({
-            filePath: tempFilePath,
-            encoding: 'base64',
-            success: (fileRes: any) => {
-              // 获取文件信息来判断 MIME 类型
-              const file = res.tempFiles?.[0]
-              let mimeType = 'image/png'
-              if (file?.type) {
-                mimeType = file.type
-              } else {
-                // 根据文件扩展名推断
-                if (tempFilePath.toLowerCase().includes('.jpg') || tempFilePath.toLowerCase().includes('.jpeg')) {
-                  mimeType = 'image/jpeg'
-                } else if (tempFilePath.toLowerCase().includes('.gif')) {
-                  mimeType = 'image/gif'
-                } else if (tempFilePath.toLowerCase().includes('.webp')) {
-                  mimeType = 'image/webp'
-                }
-              }
-              
-              setBaseImage(fileRes.data)
-              setBaseImageMimeType(mimeType)
-              Taro.showToast({ title: '图片已选择', icon: 'success' })
-            },
-            fail: () => {
-              Taro.showToast({ title: '读取图片失败', icon: 'none' })
-            }
-          })
-        } else {
-          // 小程序环境
-          Taro.getFileSystemManager().readFile({
-            filePath: tempFilePath,
-            encoding: 'base64',
-            success: (fileRes: any) => {
-              // 根据文件扩展名推断 MIME 类型
-              let mimeType = 'image/png'
-              if (tempFilePath.toLowerCase().endsWith('.jpg') || tempFilePath.toLowerCase().endsWith('.jpeg')) {
-                mimeType = 'image/jpeg'
-              } else if (tempFilePath.toLowerCase().endsWith('.gif')) {
-                mimeType = 'image/gif'
-              } else if (tempFilePath.toLowerCase().endsWith('.webp')) {
-                mimeType = 'image/webp'
-              }
-              
-              setBaseImage(fileRes.data as string)
-              setBaseImageMimeType(mimeType)
-              Taro.showToast({ title: '图片已选择', icon: 'success' })
-            },
-            fail: () => {
-              Taro.showToast({ title: '读取图片失败', icon: 'none' })
-            }
-          })
-        }
+        // 使用统一的文件读取逻辑
+        Taro.getFileSystemManager().readFile({
+          filePath: tempFilePath,
+          encoding: 'base64',
+          success: (fileRes: any) => {
+            // 使用工具函数推断 MIME 类型
+            const mimeType = getMimeTypeFromPath(tempFilePath, file?.type)
+            
+            setBaseImage(fileRes.data as string)
+            setBaseImageMimeType(mimeType)
+            Taro.showToast({ title: '图片已选择', icon: 'success' })
+          },
+          fail: () => {
+            Taro.showToast({ title: '读取图片失败', icon: 'none' })
+          }
+        })
       },
       fail: () => {
         Taro.showToast({ title: '选择图片失败', icon: 'none' })

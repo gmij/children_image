@@ -311,36 +311,28 @@ export function parseDataUrl(dataUrl: string): { data: string; mimeType: string 
 }
 
 /**
- * 将文件路径转换为 base64（仅用于小程序环境）
+ * 根据文件路径或类型推断 MIME 类型
  */
-export async function fileToBase64(filePath: string): Promise<{ data: string; mimeType: string } | null> {
-  if (process.env.TARO_ENV === 'weapp') {
-    return new Promise((resolve) => {
-      wx.getFileSystemManager().readFile({
-        filePath,
-        encoding: 'base64',
-        success: (res) => {
-          // 根据文件扩展名推断 MIME 类型
-          let mimeType = 'image/png'
-          if (filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg')) {
-            mimeType = 'image/jpeg'
-          } else if (filePath.toLowerCase().endsWith('.gif')) {
-            mimeType = 'image/gif'
-          } else if (filePath.toLowerCase().endsWith('.webp')) {
-            mimeType = 'image/webp'
-          }
-          resolve({
-            data: res.data as string,
-            mimeType
-          })
-        },
-        fail: () => {
-          resolve(null)
-        }
-      })
-    })
+export function getMimeTypeFromPath(filePath: string, fileType?: string): string {
+  // 如果有明确的文件类型，优先使用
+  if (fileType) {
+    return fileType
   }
-  return null
+  
+  // 根据文件扩展名推断
+  const lowerPath = filePath.toLowerCase()
+  if (lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg')) {
+    return 'image/jpeg'
+  } else if (lowerPath.endsWith('.png')) {
+    return 'image/png'
+  } else if (lowerPath.endsWith('.gif')) {
+    return 'image/gif'
+  } else if (lowerPath.endsWith('.webp')) {
+    return 'image/webp'
+  }
+  
+  // 默认返回 PNG
+  return 'image/png'
 }
 
 /**
