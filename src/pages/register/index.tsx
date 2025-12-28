@@ -60,9 +60,10 @@ export default function Register() {
       // 如果注册失败，检查错误信息
       if (!registerResponse.success) {
         // 检查是否是"用户在其他渠道已存在"的错误
-        if (registerResponse.message.includes('其他渠道') || registerResponse.message.includes('其它渠道') || registerResponse.message.includes('别的渠道') || registerResponse.message.includes('已经存在')) {
+        const message = registerResponse.message || ''
+        if (message.includes('其他渠道') || message.includes('其它渠道') || message.includes('别的渠道') || message.includes('已经存在')) {
           // 显示手动输入 API Key 的选项
-          setErrorMessage(registerResponse.message)
+          setErrorMessage(message)
           setShowManualEntry(true)
           Taro.showModal({
             title: t('tip'),

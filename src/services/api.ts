@@ -478,11 +478,11 @@ export async function generateImage(
 
   try {
     // 构建请求的 parts 数组
-    const parts: any[] = []
+    const requestParts: any[] = []
     
     // 如果有基础图片，先添加图片
     if (options?.baseImage && options?.baseImageMimeType) {
-      parts.push({
+      requestParts.push({
         inlineData: {
           mimeType: options.baseImageMimeType,
           data: options.baseImage
@@ -491,7 +491,7 @@ export async function generateImage(
     }
     
     // 添加文本提示词
-    parts.push({
+    requestParts.push({
       text: enhancedPrompt
     })
 
@@ -504,7 +504,7 @@ export async function generateImage(
       body: JSON.stringify({
         contents: [
           {
-            parts: parts
+            parts: requestParts
           }
         ],
         generationConfig: {
@@ -525,10 +525,10 @@ export async function generateImage(
     const data = await response.json()
     
     // Gemini API 返回格式: candidates[0].content.parts[*]
-    const parts = data.candidates?.[0]?.content?.parts || []
+    const responseParts = data.candidates?.[0]?.content?.parts || []
     let imageUrl: string | null = null
 
-    for (const part of parts) {
+    for (const part of responseParts) {
       // 检查是否是图片数据 (inlineData)
       if (part.inlineData?.data) {
         const mimeType = part.inlineData.mimeType || 'image/png'
@@ -578,11 +578,11 @@ export async function generateImageNonStream(
 
   try {
     // 构建请求的 parts 数组
-    const parts: any[] = []
+    const requestParts2: any[] = []
     
     // 如果有基础图片，先添加图片
     if (options?.baseImage && options?.baseImageMimeType) {
-      parts.push({
+      requestParts2.push({
         inlineData: {
           mimeType: options.baseImageMimeType,
           data: options.baseImage
@@ -591,7 +591,7 @@ export async function generateImageNonStream(
     }
     
     // 添加文本提示词
-    parts.push({
+    requestParts2.push({
       text: enhancedPrompt
     })
 
@@ -604,7 +604,7 @@ export async function generateImageNonStream(
       body: JSON.stringify({
         contents: [
           {
-            parts: parts
+            parts: requestParts2
           }
         ],
         generationConfig: {
@@ -625,10 +625,10 @@ export async function generateImageNonStream(
     const data = await response.json()
     
     // Gemini API 返回格式: candidates[0].content.parts[*]
-    const parts = data.candidates?.[0]?.content?.parts || []
+    const responseParts2 = data.candidates?.[0]?.content?.parts || []
     let imageUrl: string | null = null
 
-    for (const part of parts) {
+    for (const part of responseParts2) {
       // 检查是否是图片数据 (inlineData)
       if (part.inlineData?.data) {
         const mimeType = part.inlineData.mimeType || 'image/png'

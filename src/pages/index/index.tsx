@@ -100,7 +100,7 @@ export default function Index() {
   }
 
   // 删除历史图片
-  const handleDeleteHistory = (e: React.MouseEvent, imageId: string) => {
+  const handleDeleteHistory = (e: any, imageId: string) => {
     e.stopPropagation()
     Taro.showModal({
       title: '确认删除',
