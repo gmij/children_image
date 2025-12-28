@@ -46,6 +46,11 @@ export default function Index() {
   const [baseImage, setBaseImage] = useState<string>('')
   const [baseImageMimeType, setBaseImageMimeType] = useState<string>('')
   
+  // 上传图片相关状态
+  const [uploadedImages, setUploadedImages] = useState<HistoryImage[]>([]) // 上传的图片列表
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null) // 选中的图片ID
+  const [isUploading, setIsUploading] = useState(false) // 上传中状态
+  
   // 登录弹窗状态
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -191,6 +196,10 @@ export default function Index() {
         const tempFilePath = res.tempFilePaths[0]
         const file = res.tempFiles?.[0]
         
+        // 显示加载提示
+        setIsUploading(true)
+        Taro.showLoading({ title: '读取图片中...', mask: true })
+        
         // 使用统一的文件读取逻辑
         Taro.getFileSystemManager().readFile({
           filePath: tempFilePath,
@@ -198,12 +207,25 @@ export default function Index() {
           success: (fileRes: any) => {
             // 使用工具函数推断 MIME 类型
             const mimeType = getMimeTypeFromPath(tempFilePath, file?.type)
+            const imageData = fileRes.data as string
+            const imageUrl = `data:${mimeType};base64,${imageData}`
             
-            setBaseImage(fileRes.data as string)
-            setBaseImageMimeType(mimeType)
-            Taro.showToast({ title: '图片已选择', icon: 'success' })
+            // 添加到上传图片列表
+            const newImage: HistoryImage = {
+              id: `upload_${Date.now()}`,
+              url: imageUrl,
+              createdAt: Date.now()
+            }
+            setUploadedImages(prev => [newImage, ...prev])
+            setSelectedImageId(newImage.id) // 自动选中新上传的图片
+            
+            setIsUploading(false)
+            Taro.hideLoading()
+            Taro.showToast({ title: '图片上传成功', icon: 'success', duration: 1500 })
           },
           fail: () => {
+            setIsUploading(false)
+            Taro.hideLoading()
             Taro.showToast({ title: '读取图片失败', icon: 'none' })
           }
         })
@@ -214,23 +236,29 @@ export default function Index() {
     })
   }
 
-  // 清除选择的基础图片
+  // 选择/取消选择图片
+  const handleToggleImageSelection = (imageId: string) => {
+    setSelectedImageId(prev => prev === imageId ? null : imageId)
+  }
+
+  // 删除上传的图片
+  const handleDeleteUploadedImage = (e: any, imageId: string) => {
+    e.stopPropagation()
+    setUploadedImages(prev => prev.filter(img => img.id !== imageId))
+    if (selectedImageId === imageId) {
+      setSelectedImageId(null)
+    }
+  }
+
+  // 清除选择的基础图片（保留用于向后兼容）
   const handleClearBaseImage = () => {
     setBaseImage('')
     setBaseImageMimeType('')
   }
 
-  // 使用历史图片进行二创
-  const handleModifyHistory = (imageUrl: string) => {
-    const parsed = parseDataUrl(imageUrl)
-    if (parsed) {
-      setBaseImage(parsed.data)
-      setBaseImageMimeType(parsed.mimeType)
-      setPrompt('') // 清空提示词，让用户输入新的修改要求
-      Taro.showToast({ title: '已选择该图片进行修改', icon: 'success' })
-    } else {
-      Taro.showToast({ title: '图片格式不支持', icon: 'none' })
-    }
+  // 使用历史图片进行二创（改为选择方式）
+  const handleModifyHistory = (imageId: string) => {
+    setSelectedImageId(prev => prev === imageId ? null : imageId)
   }
 
   // 生成图片
@@ -277,8 +305,27 @@ export default function Index() {
       aspectRatio: getAspectRatio()
     }
 
-    // 如果有基础图片，添加到选项中
-    if (baseImage && baseImageMimeType) {
+    // 获取选中的图片
+    let selectedImage: HistoryImage | undefined
+    if (selectedImageId) {
+      // 先从上传的图片中查找
+      selectedImage = uploadedImages.find(img => img.id === selectedImageId)
+      // 如果没找到，从历史图片中查找
+      if (!selectedImage) {
+        selectedImage = historyImages.find(img => img.id === selectedImageId)
+      }
+    }
+
+    // 如果有选中的图片，提取base64和MIME类型
+    if (selectedImage) {
+      const parsed = parseDataUrl(selectedImage.url)
+      if (parsed) {
+        options.baseImage = parsed.data
+        options.baseImageMimeType = parsed.mimeType
+      }
+    }
+    // 向后兼容：如果有旧的基础图片状态，也使用
+    else if (baseImage && baseImageMimeType) {
       options.baseImage = baseImage
       options.baseImageMimeType = baseImageMimeType
     }
@@ -295,7 +342,8 @@ export default function Index() {
           // 生成完成后自动添加到历史
           const newImage = addImageToHistory(imageUrl)
           setHistoryImages(prev => [newImage, ...prev].slice(0, MAX_HISTORY_IMAGES))
-          // 清除基础图片
+          // 清除选择状态和基础图片
+          setSelectedImageId(null)
           setBaseImage('')
           setBaseImageMimeType('')
         },
@@ -379,7 +427,7 @@ export default function Index() {
         <Text className='section-title'>📝 输入{getStyleName()}主题</Text>
         <Textarea
           className='prompt-input'
-          placeholder={baseImage ? '输入修改要求，例如：让图片更明亮，添加更多花朵' : '例如：春天来了，花儿开放'}
+          placeholder={selectedImageId ? '输入修改要求，例如：让图片更明亮，添加更多花朵' : '例如：春天来了，花儿开放'}
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -389,29 +437,51 @@ export default function Index() {
           <Text>{prompt.length}/200</Text>
         </View>
 
-        {/* 上传图片区域 */}
+        {/* 上传图片按钮 */}
         <View className='upload-section'>
-          {!baseImage ? (
-            <Button className='upload-btn' onClick={handleUploadImage} disabled={isGenerating}>
-              📷 上传图片进行修改
-            </Button>
-          ) : (
-            <View className='base-image-preview'>
-              <View className='preview-header'>
-                <Text className='preview-label'>🖼️ 基础图片（将基于此图修改）</Text>
-                <View className='clear-btn' onClick={handleClearBaseImage}>
-                  <Text>✕</Text>
-                </View>
-              </View>
-              <Image
-                className='preview-image'
-                src={`data:${baseImageMimeType};base64,${baseImage}`}
-                mode='aspectFit'
-              />
-            </View>
-          )}
+          <Button 
+            className='upload-btn' 
+            onClick={handleUploadImage} 
+            disabled={isGenerating || isUploading}
+            loading={isUploading}
+          >
+            {isUploading ? '⏳ 读取中...' : '📷 上传图片进行修改'}
+          </Button>
         </View>
       </View>
+
+      {/* 上传的图片区域 */}
+      {uploadedImages.length > 0 && (
+        <View className='uploaded-section'>
+          <Text className='section-title'>📤 上传的图片（点击图片选择参与生成）</Text>
+          <View className='uploaded-list'>
+            {uploadedImages.map((img) => (
+              <View 
+                key={img.id} 
+                className={`uploaded-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
+              >
+                <Image
+                  className='uploaded-thumbnail'
+                  src={img.url}
+                  mode='aspectFill'
+                />
+                {selectedImageId === img.id && (
+                  <View className='selected-indicator'>
+                    <Text className='check-icon'>✓</Text>
+                  </View>
+                )}
+                <View 
+                  className='uploaded-delete'
+                  onClick={(e) => handleDeleteUploadedImage(e, img.id)}
+                >
+                  <Text>×</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* 示例提示词 */}
       <View className='examples-section'>
@@ -450,29 +520,29 @@ export default function Index() {
       {/* 历史图片区域 */}
       {historyImages.length > 0 && (
         <View className='history-section'>
-          <Text className='section-title'>📸 历史图片（最多保存3张）</Text>
+          <Text className='section-title'>📸 历史图片（最多保存3张，点击选择参与生成）</Text>
           <View className='history-list'>
             {historyImages.map((img) => (
-              <View key={img.id} className='history-item'>
+              <View 
+                key={img.id} 
+                className={`history-item ${selectedImageId === img.id ? 'selected' : ''}`}
+                onClick={() => handleToggleImageSelection(img.id)}
+              >
                 <Image
                   className='history-thumbnail'
                   src={img.url}
                   mode='aspectFill'
-                  onClick={() => setPreviewHistoryImage(img.url)}
                 />
-                <View className='history-actions'>
-                  <View 
-                    className='history-modify'
-                    onClick={(e) => { e.stopPropagation(); handleModifyHistory(img.url); }}
-                  >
-                    <Text>✏️</Text>
+                {selectedImageId === img.id && (
+                  <View className='selected-indicator'>
+                    <Text className='check-icon'>✓</Text>
                   </View>
-                  <View 
-                    className='history-delete'
-                    onClick={(e) => handleDeleteHistory(e, img.id)}
-                  >
-                    <Text>×</Text>
-                  </View>
+                )}
+                <View 
+                  className='history-delete'
+                  onClick={(e) => handleDeleteHistory(e, img.id)}
+                >
+                  <Text>×</Text>
                 </View>
               </View>
             ))}
