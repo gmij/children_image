@@ -74,6 +74,30 @@ export default function Settings() {
     })
   }
 
+  const handleLogout = () => {
+    Taro.showModal({
+      title: '退出登录',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          setApiKey('')
+          setApiKeyValue('')
+          Taro.showToast({ 
+            title: '已退出', 
+            icon: 'success',
+            duration: 1500,
+            success: () => {
+              // 延迟跳转以显示提示
+              setTimeout(() => {
+                Taro.reLaunch({ url: '/pages/index/index' })
+              }, 1500)
+            }
+          })
+        }
+      }
+    })
+  }
+
   const handlePaperSizeChange = (index: number) => {
     setSelectedPaperIndex(index)
     setPaperSizeIndex(index)
@@ -132,6 +156,9 @@ export default function Settings() {
             <View className='api-actions'>
               <View className='action-btn primary' onClick={() => setIsEditing(true)}>
                 <Text>修改</Text>
+              </View>
+              <View className='action-btn danger' onClick={handleLogout}>
+                <Text>退出登录</Text>
               </View>
             </View>
           </View>
