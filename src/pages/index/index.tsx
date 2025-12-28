@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button } from '@tarojs/components'
+import { View, Text, Textarea, Image, Button, Input } from '@tarojs/components'
 import { 
   generateImage, hasApiKey, GenerateOptions, 
   getPaperSizeIndex, getPaperOrientation, 
   getImageStyle, STYLE_NAMES,
-  getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage
+  getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
+  registerUser, getUserKey, setApiKey
 } from '../../services/api'
 import './index.scss'
 
@@ -40,17 +41,32 @@ export default function Index() {
   const [currentStyle, setCurrentStyle] = useState('handwritten') // 当前风格
   const [historyImages, setHistoryImages] = useState<HistoryImage[]>([]) // 历史图片
   const [previewHistoryImage, setPreviewHistoryImage] = useState<string | null>(null) // 预览历史图片
+  
+  // 登录弹窗状态
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
 
   // 检查 API Key 配置状态 - 页面首次加载时
   useEffect(() => {
-    setHasKey(hasApiKey())
+    const keyExists = hasApiKey()
+    setHasKey(keyExists)
+    // 如果没有 API Key，显示登录弹窗
+    if (!keyExists) {
+      setShowLoginModal(true)
+    }
     setCurrentStyle(getImageStyle())
     setHistoryImages(getImageHistory())
   }, [])
 
   // 页面显示时重新检查 API Key 状态和风格（从设置页返回时触发）
   useDidShow(() => {
-    setHasKey(hasApiKey())
+    const keyExists = hasApiKey()
+    setHasKey(keyExists)
+    // 如果没有 API Key，显示登录弹窗
+    if (!keyExists) {
+      setShowLoginModal(true)
+    }
     setCurrentStyle(getImageStyle())
     setHistoryImages(getImageHistory())
   })
@@ -92,6 +108,72 @@ export default function Index() {
           Taro.showToast({ title: '已删除', icon: 'success' })
         }
       }
+    })
+  }
+
+  // 处理手机号登录/注册
+  const handlePhoneLogin = async () => {
+    if (!phoneNumber.trim()) {
+      Taro.showToast({ title: '请输入手机号', icon: 'none' })
+      return
+    }
+
+    // 验证手机号格式
+    const phoneRegex = /^1[3-9]\d{9}$/
+    if (!phoneRegex.test(phoneNumber.trim())) {
+      Taro.showToast({ title: '手机号格式不正确', icon: 'none' })
+      return
+    }
+
+    setIsRegistering(true)
+
+    try {
+      // 先尝试获取已有用户的 API Key
+      const getUserResult = await getUserKey(phoneNumber.trim())
+      
+      if (getUserResult.success && getUserResult.result?.apiKey) {
+        // 用户已存在，直接使用返回的 API Key
+        setApiKey(getUserResult.result.apiKey)
+        setHasKey(true)
+        setShowLoginModal(false)
+        Taro.showToast({ title: '登录成功', icon: 'success' })
+        return
+      }
+
+      // 用户不存在，进行注册
+      const registerResult = await registerUser(phoneNumber.trim())
+      
+      if (registerResult.success && registerResult.result?.apiKey) {
+        setApiKey(registerResult.result.apiKey)
+        setHasKey(true)
+        setShowLoginModal(false)
+        Taro.showToast({ title: '注册成功', icon: 'success' })
+      } else {
+        Taro.showToast({ 
+          title: registerResult.message || '注册失败，请重试', 
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      Taro.showToast({ 
+        title: '登录失败，请重试', 
+        icon: 'none' 
+      })
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
+  // 获取微信手机号（微信小程序专用）
+  const handleGetWeChatPhone = (e: any) => {
+    console.log('微信手机号授权:', e)
+    // 这里需要后端支持微信手机号解密
+    // 暂时提示用户手动输入
+    Taro.showToast({ 
+      title: '请手动输入手机号', 
+      icon: 'none' 
     })
   }
 
@@ -366,6 +448,58 @@ export default function Index() {
             <Button className='save-btn-fullscreen' onClick={() => handleSave(previewHistoryImage)}>
               💾 保存图片
             </Button>
+          </View>
+        </View>
+      )}
+
+      {/* 登录弹窗 */}
+      {showLoginModal && (
+        <View className='login-modal-overlay' onClick={() => {/* 防止点击背景关闭 */}}>
+          <View className='login-modal' onClick={(e) => e.stopPropagation()}>
+            <View className='login-header'>
+              <Text className='login-title'>📱 欢迎使用</Text>
+              <Text className='login-subtitle'>请输入手机号登录/注册</Text>
+            </View>
+            
+            <View className='login-body'>
+              <View className='login-input-group'>
+                <Text className='login-label'>手机号</Text>
+                <Input
+                  className='login-input'
+                  type='number'
+                  placeholder='请输入手机号'
+                  maxlength={11}
+                  value={phoneNumber}
+                  onInput={(e) => setPhoneNumber(e.detail.value)}
+                  disabled={isRegistering}
+                />
+              </View>
+
+              {/* 微信小程序快捷登录按钮 */}
+              {process.env.TARO_ENV === 'weapp' && (
+                <Button 
+                  className='wechat-phone-btn'
+                  openType='getPhoneNumber'
+                  onGetPhoneNumber={handleGetWeChatPhone}
+                  disabled={isRegistering}
+                >
+                  📱 微信快捷登录
+                </Button>
+              )}
+
+              <Button 
+                className='login-submit-btn'
+                onClick={handlePhoneLogin}
+                disabled={isRegistering || !phoneNumber.trim()}
+                loading={isRegistering}
+              >
+                {isRegistering ? '登录中...' : '登录/注册'}
+              </Button>
+
+              <View className='login-tip'>
+                <Text className='tip-text'>首次登录将自动注册账号</Text>
+              </View>
+            </View>
           </View>
         </View>
       )}

@@ -43,6 +43,23 @@
     padding: 8px 0;
   }
   
+  .api-key-display {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+  }
+
+  .api-key-masked {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    color: #495057;
+    word-break: break-all;
+    letter-spacing: 1px;
+    display: block;
+  }
+  
   .api-actions {
     display: flex;
     gap: 10px;

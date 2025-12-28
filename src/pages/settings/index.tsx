@@ -49,6 +49,14 @@ export default function Settings() {
     setSignatureValue(getSignature())
   }, [])
 
+  // 掩码API Key显示（前5位 + 10个* + 后5位）
+  const maskApiKey = (key: string): string => {
+    if (!key || key.length < 10) return key
+    const prefix = key.slice(0, 5)
+    const suffix = key.slice(-5)
+    return `${prefix}**********${suffix}`
+  }
+
   const handleInput = useCallback((e) => {
     setApiKeyValue(e.detail.value)
   }, [])
@@ -161,6 +169,9 @@ export default function Settings() {
         
         {hasKey && !isEditing ? (
           <View className='api-configured'>
+            <View className='api-key-display'>
+              <Text className='api-key-masked'>{maskApiKey(apiKeyValue)}</Text>
+            </View>
             <View className='api-actions'>
               <View className='action-btn primary' onClick={() => setIsEditing(true)}>
                 <Text>修改</Text>

@@ -557,3 +557,159 @@
   font-size: 12px;
   color: #999;
 }
+
+/* 登录弹窗样式 */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.login-modal {
+  width: 90%;
+  max-width: 400px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.login-header {
+  padding: 32px 24px 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  display: block;
+}
+
+.login-body {
+  padding: 24px;
+  background: #fff;
+}
+
+.login-input-group {
+  margin-bottom: 20px;
+}
+
+.login-label {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.login-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #f8f8f8;
+  transition: all 0.3s;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #667eea;
+    background: #fff;
+  }
+}
+
+.wechat-phone-btn {
+  width: 100%;
+  height: 48px;
+  line-height: 48px;
+  background: linear-gradient(135deg, #07c160 0%, #05a550 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(7, 193, 96, 0.3);
+  transition: all 0.3s;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(7, 193, 96, 0.3);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    transform: none;
+  }
+}
+
+.login-submit-btn {
+  width: 100%;
+  height: 52px;
+  line-height: 52px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  }
+
+  &[loading] {
+    opacity: 0.8;
+  }
+}
+
+.login-tip {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.tip-text {
+  font-size: 13px;
+  color: #999;
+}
