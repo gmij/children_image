@@ -423,7 +423,9 @@ export default function Index() {
       if (parsed) {
         // 是 base64 数据，需要先写入临时文件
         const fs = Taro.getFileSystemManager()
-        const filePath = `${Taro.env.USER_DATA_PATH}/temp_${Date.now()}.png`
+        // 根据 MIME 类型确定文件扩展名
+        const ext = parsed.mimeType.split('/')[1] || 'png'
+        const filePath = `${Taro.env.USER_DATA_PATH}/temp_${Date.now()}.${ext}`
         
         try {
           // 写入临时文件
@@ -431,7 +433,7 @@ export default function Index() {
           
           // 保存到相册
           Taro.saveImageToPhotosAlbum({
-            filePath: filePath,
+            filePath,
             success: () => {
               // 保存成功后删除临时文件
               try {
