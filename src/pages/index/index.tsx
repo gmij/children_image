@@ -189,6 +189,33 @@ export default function Index() {
     })
   }
 
+  // 生成唯一的上传图片 ID
+  const generateUploadId = () => {
+    return `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  // 处理图片上传成功
+  const handleImageUploadSuccess = (imageUrl: string) => {
+    const newImage: HistoryImage = {
+      id: generateUploadId(),
+      url: imageUrl,
+      createdAt: Date.now()
+    }
+    setUploadedImages(prev => [newImage, ...prev])
+    setSelectedImageId(newImage.id)
+    
+    setIsUploading(false)
+    Taro.hideLoading()
+    Taro.showToast({ title: t('imageUploadSuccess'), icon: 'success', duration: 1500 })
+  }
+
+  // 处理图片上传失败
+  const handleImageUploadError = () => {
+    setIsUploading(false)
+    Taro.hideLoading()
+    Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+  }
+
   // 上传本地图片
   const handleUploadImage = () => {
     Taro.chooseImage({
@@ -205,8 +232,7 @@ export default function Index() {
         
         // H5 environment handling
         if (process.env.TARO_ENV === 'h5') {
-          // In H5, tempFilePath is already a base64 data URL or blob URL
-          // We need to convert it to base64
+          // In H5, we need to convert blob to base64 using FileReader
           const reader = new FileReader()
           
           // For H5, we can get the file from tempFiles
@@ -217,37 +243,17 @@ export default function Index() {
                 reader.readAsDataURL(blob)
                 reader.onloadend = () => {
                   const base64data = reader.result as string
-                  
-                  // Extract MIME type from the data URL
-                  const mimeType = getMimeTypeFromPath(tempFilePath, file.type)
-                  
-                  const newImage: HistoryImage = {
-                    id: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                    url: base64data,
-                    createdAt: Date.now()
-                  }
-                  setUploadedImages(prev => [newImage, ...prev])
-                  setSelectedImageId(newImage.id)
-                  
-                  setIsUploading(false)
-                  Taro.hideLoading()
-                  Taro.showToast({ title: t('imageUploadSuccess'), icon: 'success', duration: 1500 })
+                  handleImageUploadSuccess(base64data)
                 }
                 reader.onerror = () => {
-                  setIsUploading(false)
-                  Taro.hideLoading()
-                  Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+                  handleImageUploadError()
                 }
               })
               .catch(() => {
-                setIsUploading(false)
-                Taro.hideLoading()
-                Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+                handleImageUploadError()
               })
           } else {
-            setIsUploading(false)
-            Taro.hideLoading()
-            Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+            handleImageUploadError()
           }
         } else {
           // WeChat Mini Program environment
@@ -255,28 +261,14 @@ export default function Index() {
             filePath: tempFilePath,
             encoding: 'base64',
             success: (fileRes: any) => {
-              // 使用工具函数推断 MIME 类型
               const mimeType = getMimeTypeFromPath(tempFilePath, file?.type)
               const imageData = fileRes.data as string
               const imageUrl = `data:${mimeType};base64,${imageData}`
               
-              // 添加到上传图片列表
-              const newImage: HistoryImage = {
-                id: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                url: imageUrl,
-                createdAt: Date.now()
-              }
-              setUploadedImages(prev => [newImage, ...prev])
-              setSelectedImageId(newImage.id) // 自动选中新上传的图片
-              
-              setIsUploading(false)
-              Taro.hideLoading()
-              Taro.showToast({ title: t('imageUploadSuccess'), icon: 'success', duration: 1500 })
+              handleImageUploadSuccess(imageUrl)
             },
             fail: () => {
-              setIsUploading(false)
-              Taro.hideLoading()
-              Taro.showToast({ title: t('imageReadFailed'), icon: 'none' })
+              handleImageUploadError()
             }
           })
         }
