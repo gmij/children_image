@@ -534,22 +534,20 @@ export default function Index() {
                   mode='aspectFill'
                   onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
-                {/* Left selection indicator - only show when selected */}
-                {selectedImageId === img.id && (
-                  <View 
-                    className='history-select-left'
-                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                  >
-                    <Text>✓</Text>
-                  </View>
-                )}
+                {/* Left selection indicator */}
+                <View 
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                >
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
                 {/* Right delete button */}
                 <View className='history-actions'>
                   <View 
                     className='history-delete'
                     onClick={(e) => handleDeleteUploadedImage(e, img.id)}
                   >
-                    <Text>🗑</Text>
+                    <Text>×</Text>
                   </View>
                 </View>
               </View>
@@ -567,22 +565,20 @@ export default function Index() {
                   mode='aspectFill'
                   onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(img.url); }}
                 />
-                {/* Left selection indicator - only show when selected */}
-                {selectedImageId === img.id && (
-                  <View 
-                    className='history-select-left'
-                    onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
-                  >
-                    <Text>✓</Text>
-                  </View>
-                )}
+                {/* Left selection indicator */}
+                <View 
+                  className='history-select-left'
+                  onClick={(e) => { e.stopPropagation(); handleToggleImageSelection(img.id); }}
+                >
+                  <Text>{selectedImageId === img.id ? '✓' : '○'}</Text>
+                </View>
                 {/* Right delete button */}
                 <View className='history-actions'>
                   <View 
                     className='history-delete'
                     onClick={(e) => handleDeleteHistory(e, img.id)}
                   >
-                    <Text>🗑</Text>
+                    <Text>×</Text>
                   </View>
                 </View>
               </View>
