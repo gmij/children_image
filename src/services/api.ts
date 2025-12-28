@@ -28,6 +28,8 @@ export const STYLE_NAMES: Record<string, string> = {
   handwritten: '手抄报',
   wireframe: '线框图',
   blackboard: '黑板报',
+  anime: '动漫',
+  custom: '自定义',
 }
 
 // 风格选项映射
@@ -35,6 +37,8 @@ const STYLE_PROMPTS: Record<string, string> = {
   handwritten: '手抄报风格，手绘感，彩色边框装饰',
   wireframe: '线框图风格，简洁线条，黑白为主',
   blackboard: '黑板报风格，深色背景，粉笔画效果',
+  anime: '动漫风格，日系动画，可爱卡通人物',
+  custom: '', // 自定义风格不使用系统提示词
 }
 
 // Base64 图片前缀模式
@@ -299,6 +303,11 @@ function enhancePrompt(userPrompt: string): string {
   const style = getImageStyle()
   const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.handwritten
   const signature = getSignature()
+  
+  // 如果是自定义风格，直接使用用户输入，不添加系统提示词
+  if (style === 'custom') {
+    return userPrompt
+  }
   
   let prompt = `请为幼儿园小朋友生成一张精美的图片。主题是：${userPrompt}
 
