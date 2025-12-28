@@ -1,42 +1,187 @@
 import { useState, useEffect } from 'react'
-import Taro from '@tarojs/taro'
-import { View, Text, Textarea, Image, Button } from '@tarojs/components'
-import { generateImage, hasApiKey } from '../../services/api'
-import { useTranslation } from '../../utils/i18n'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { View, Text, Textarea, Image, Button, Input } from '@tarojs/components'
+import { 
+  generateImage, hasApiKey, GenerateOptions, 
+  getPaperSizeIndex, getPaperOrientation, 
+  getImageStyle, STYLE_NAMES,
+  getImageHistory, addImageToHistory, deleteImageFromHistory, HistoryImage,
+  registerUser, getUserKey, setApiKey
+} from '../../services/api'
 import './index.scss'
 
+// 历史图片最大数量
+const MAX_HISTORY_IMAGES = 3
+
+// 示例提示词
+const EXAMPLE_PROMPTS = [
+  '春天来了，花儿开放',
+  '我爱我的家',
+  '小动物们的快乐一天',
+  '保护地球，爱护环境',
+  '中秋节快乐',
+]
+
+// 纸张尺寸选项 (宽:高)
+const PAPER_SIZES = [
+  { name: 'A4 纸', ratio: '210:297', portrait: '2:3', landscape: '3:2' },
+  { name: 'A3 纸', ratio: '297:420', portrait: '2:3', landscape: '3:2' },
+  { name: '正方形', ratio: '1:1', portrait: '1:1', landscape: '1:1' },
+  { name: '16:9 屏幕', ratio: '16:9', portrait: '9:16', landscape: '16:9' },
+  { name: '4:3 屏幕', ratio: '4:3', portrait: '3:4', landscape: '4:3' },
+]
+
 export default function Index() {
-  const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState('')
   const [error, setError] = useState('')
   const [hasKey, setHasKey] = useState(false)
+  const [showFullscreen, setShowFullscreen] = useState(false) // 全屏预览
+  const [currentStyle, setCurrentStyle] = useState('handwritten') // 当前风格
+  const [historyImages, setHistoryImages] = useState<HistoryImage[]>([]) // 历史图片
+  const [previewHistoryImage, setPreviewHistoryImage] = useState<string | null>(null) // 预览历史图片
+  
+  // 登录弹窗状态
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
 
-  // 示例提示词
-  const EXAMPLE_PROMPTS = [
-    t('exampleSpring'),
-    t('exampleHome'),
-    t('exampleAnimals'),
-    t('exampleEarth'),
-    t('exampleFestival'),
-  ]
-
-  // 检查 API Key 配置状态
+  // 检查 API Key 配置状态 - 页面首次加载时
   useEffect(() => {
-    setHasKey(hasApiKey())
+    const keyExists = hasApiKey()
+    setHasKey(keyExists)
+    // 如果没有 API Key，显示登录弹窗
+    if (!keyExists) {
+      setShowLoginModal(true)
+    }
+    setCurrentStyle(getImageStyle())
+    setHistoryImages(getImageHistory())
   }, [])
+
+  // 页面显示时重新检查 API Key 状态和风格（从设置页返回时触发）
+  useDidShow(() => {
+    const keyExists = hasApiKey()
+    setHasKey(keyExists)
+    // 如果没有 API Key，显示登录弹窗
+    if (!keyExists) {
+      setShowLoginModal(true)
+    }
+    setCurrentStyle(getImageStyle())
+    setHistoryImages(getImageHistory())
+  })
 
   // 跳转到设置页面
   const goToSettings = () => {
     Taro.navigateTo({ url: '/pages/settings/index' })
   }
 
+  // 获取当前选择的纵横比（从存储读取）
+  const getAspectRatio = (): string => {
+    const paperIndex = getPaperSizeIndex()
+    const isLandscape = getPaperOrientation()
+    const paper = PAPER_SIZES[paperIndex]
+    return isLandscape ? paper.landscape : paper.portrait
+  }
+
+  // 获取风格名称
+  const getStyleName = (): string => {
+    return STYLE_NAMES[currentStyle] || '手抄报'
+  }
+
+  // 关闭全屏预览
+  const closeFullscreen = () => {
+    setShowFullscreen(false)
+    setGeneratedImage('')
+  }
+
+  // 删除历史图片
+  const handleDeleteHistory = (e: React.MouseEvent, imageId: string) => {
+    e.stopPropagation()
+    Taro.showModal({
+      title: '确认删除',
+      content: '确定要删除这张图片吗？',
+      success: (res) => {
+        if (res.confirm) {
+          deleteImageFromHistory(imageId)
+          setHistoryImages(prev => prev.filter(img => img.id !== imageId))
+          Taro.showToast({ title: '已删除', icon: 'success' })
+        }
+      }
+    })
+  }
+
+  // 处理手机号登录/注册
+  const handlePhoneLogin = async () => {
+    if (!phoneNumber.trim()) {
+      Taro.showToast({ title: '请输入手机号', icon: 'none' })
+      return
+    }
+
+    // 验证手机号格式
+    const phoneRegex = /^1[3-9]\d{9}$/
+    if (!phoneRegex.test(phoneNumber.trim())) {
+      Taro.showToast({ title: '手机号格式不正确', icon: 'none' })
+      return
+    }
+
+    setIsRegistering(true)
+
+    try {
+      // 先尝试获取已有用户的 API Key
+      const getUserResult = await getUserKey(phoneNumber.trim())
+      
+      if (getUserResult.success && getUserResult.result?.apiKey) {
+        // 用户已存在，直接使用返回的 API Key
+        setApiKey(getUserResult.result.apiKey)
+        setHasKey(true)
+        setShowLoginModal(false)
+        Taro.showToast({ title: '登录成功', icon: 'success' })
+        return
+      }
+
+      // 用户不存在，进行注册
+      const registerResult = await registerUser(phoneNumber.trim())
+      
+      if (registerResult.success && registerResult.result?.apiKey) {
+        setApiKey(registerResult.result.apiKey)
+        setHasKey(true)
+        setShowLoginModal(false)
+        Taro.showToast({ title: '注册成功', icon: 'success' })
+      } else {
+        Taro.showToast({ 
+          title: registerResult.message || '注册失败，请重试', 
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      Taro.showToast({ 
+        title: '登录失败，请重试', 
+        icon: 'none' 
+      })
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
+  // 获取微信手机号（微信小程序专用）
+  const handleGetWeChatPhone = (e: any) => {
+    console.log('微信手机号授权:', e)
+    // 这里需要后端支持微信手机号解密
+    // 暂时提示用户手动输入
+    Taro.showToast({ 
+      title: '请手动输入手机号', 
+      icon: 'none' 
+    })
+  }
+
   // 生成图片
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       Taro.showToast({
-        title: t('pleaseInputPrompt'),
+        title: '请输入提示词',
         icon: 'none'
       })
       return
@@ -44,9 +189,9 @@ export default function Index() {
 
     if (!hasApiKey()) {
       Taro.showModal({
-        title: t('tip'),
-        content: t('pleaseConfigApiKey'),
-        confirmText: t('goToConfig'),
+        title: '提示',
+        content: '请先配置 API Key',
+        confirmText: '去配置',
         success: (res) => {
           if (res.confirm) {
             goToSettings()
@@ -56,9 +201,25 @@ export default function Index() {
       return
     }
 
+    // 检查历史图片数量是否已满
+    if (historyImages.length >= MAX_HISTORY_IMAGES) {
+      Taro.showModal({
+        title: '历史图片已满',
+        content: `最多只能保存 ${MAX_HISTORY_IMAGES} 张图片，请先删除一些历史图片再生成新的。`,
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      return
+    }
+
     setIsGenerating(true)
+    setShowFullscreen(true) // 生成时就显示全屏遮罩
     setError('')
     setGeneratedImage('')
+
+    const options: GenerateOptions = {
+      aspectRatio: getAspectRatio()
+    }
 
     // 调用非流式 API（文生图不支持流式输出）
     try {
@@ -69,60 +230,60 @@ export default function Index() {
         onComplete: (imageUrl) => {
           setGeneratedImage(imageUrl)
           setIsGenerating(false)
-          Taro.showToast({
-            title: t('generateSuccess'),
-            icon: 'success'
-          })
+          // 生成完成后自动添加到历史
+          const newImage = addImageToHistory(imageUrl)
+          setHistoryImages(prev => [newImage, ...prev].slice(0, MAX_HISTORY_IMAGES))
         },
         onError: (err) => {
           setError(err)
           setIsGenerating(false)
+          setShowFullscreen(false) // 错误时关闭遮罩
         }
-      })
+      }, options)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('saveFailed'))
+      setError(err instanceof Error ? err.message : '生成失败')
       setIsGenerating(false)
     }
   }
 
   // 使用示例提示词
-  const selectExample = (example: string) => {
+  const handleUseExample = (example: string) => {
     setPrompt(example)
   }
 
   // 保存图片
-  const handleSave = () => {
-    if (!generatedImage) return
+  const handleSave = (imageUrl: string) => {
+    if (!imageUrl) return
 
     if (process.env.TARO_ENV === 'h5') {
       try {
         const link = document.createElement('a')
-        link.href = generatedImage
-        link.download = `handwritten_newspaper_${Date.now()}.png`
+        link.href = imageUrl
+        link.download = `${getStyleName()}_${Date.now()}.png`
         link.click()
         Taro.showToast({
-          title: t('saved'),
+          title: '已下载！',
           icon: 'success'
         })
       } catch {
         Taro.showToast({
-          title: t('saveFailed'),
+          title: '下载失败',
           icon: 'none'
         })
       }
     } else {
       // 小程序环境
       Taro.saveImageToPhotosAlbum({
-        filePath: generatedImage,
+        filePath: imageUrl,
         success: () => {
           Taro.showToast({
-            title: t('saved'),
+            title: '保存成功！',
             icon: 'success'
           })
         },
         fail: () => {
           Taro.showToast({
-            title: t('saveFailed'),
+            title: '保存失败',
             icon: 'none'
           })
         }
@@ -134,8 +295,8 @@ export default function Index() {
     <View className='container'>
       {/* 头部标题 */}
       <View className='header'>
-        <Text className='title'>✨ {t('appTitle')}</Text>
-        <Text className='subtitle'>{t('appSubtitle')}</Text>
+        <Text className='title'>✨ AI {getStyleName()}生成器</Text>
+        <Text className='subtitle'>为宝贝生成精美的{getStyleName()}</Text>
         <View className='settings-btn' onClick={goToSettings}>
           <Text className='settings-icon'>⚙️</Text>
         </View>
@@ -144,16 +305,16 @@ export default function Index() {
       {/* API Key 提示 */}
       {!hasKey && (
         <View className='api-tip' onClick={goToSettings}>
-          <Text className='tip-text'>⚠️ {t('apiKeyWarning')}</Text>
+          <Text className='tip-text'>⚠️ 请先配置 API Key 才能使用</Text>
         </View>
       )}
 
       {/* 输入区域 */}
       <View className='input-section'>
-        <Text className='section-title'>📝 {t('inputPromptTitle')}</Text>
+        <Text className='section-title'>📝 输入{getStyleName()}主题</Text>
         <Textarea
           className='prompt-input'
-          placeholder={t('inputPromptPlaceholder')}
+          placeholder='例如：春天来了，花儿开放'
           value={prompt}
           onInput={(e) => setPrompt(e.detail.value)}
           maxlength={200}
@@ -166,13 +327,13 @@ export default function Index() {
 
       {/* 示例提示词 */}
       <View className='examples-section'>
-        <Text className='section-title'>💡 {t('examplesTitle')}</Text>
+        <Text className='section-title'>💡 试试这些主题</Text>
         <View className='examples'>
           {EXAMPLE_PROMPTS.map((example, index) => (
             <View
               key={index}
               className='example-tag'
-              onClick={() => selectExample(example)}
+              onClick={() => handleUseExample(example)}
             >
               <Text>{example}</Text>
             </View>
@@ -182,50 +343,171 @@ export default function Index() {
 
       {/* 生成按钮 */}
       <Button
-        className={`generate-btn ${isGenerating ? 'loading' : ''}`}
+        className={`generate-btn ${isGenerating ? 'loading' : ''} ${historyImages.length >= MAX_HISTORY_IMAGES ? 'disabled' : ''}`}
         onClick={handleGenerate}
-        disabled={isGenerating}
+        disabled={isGenerating || historyImages.length >= MAX_HISTORY_IMAGES}
       >
-        {isGenerating ? `🎨 ${t('generating')}` : `🚀 ${t('generateButton')}`}
+        {historyImages.length >= MAX_HISTORY_IMAGES 
+          ? '📸 历史已满，请先删除' 
+          : (isGenerating ? '🎨 正在生成中...' : `🚀 生成${getStyleName()}`)}
       </Button>
-
-      {/* 加载状态 */}
-      {isGenerating && (
-        <View className='loading-section'>
-          <View className='loading-spinner' />
-          <Text className='loading-text'>{t('loadingText')}</Text>
-        </View>
-      )}
 
       {/* 错误提示 */}
       {error && (
         <View className='error-section'>
-          <Text className='error-text'>{t('errorPrefix')}{error}</Text>
+          <Text className='error-text'>❌ {error}</Text>
         </View>
       )}
 
-      {/* 生成结果 */}
-      {generatedImage && (
-        <View className='result-section'>
-          <Text className='section-title'>🎉 {t('resultTitle')}</Text>
-          <View className='image-wrapper'>
+      {/* 历史图片区域 */}
+      {historyImages.length > 0 && (
+        <View className='history-section'>
+          <Text className='section-title'>📸 历史图片（最多保存3张）</Text>
+          <View className='history-list'>
+            {historyImages.map((img) => (
+              <View key={img.id} className='history-item'>
+                <Image
+                  className='history-thumbnail'
+                  src={img.url}
+                  mode='aspectFill'
+                  onClick={() => setPreviewHistoryImage(img.url)}
+                />
+                <View 
+                  className='history-delete'
+                  onClick={(e) => handleDeleteHistory(e, img.id)}
+                >
+                  <Text>×</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* 全屏预览/生成中遮罩 */}
+      {showFullscreen && (
+        <View className='fullscreen-overlay' onClick={generatedImage ? closeFullscreen : undefined}>
+          {/* 关闭按钮 - 只在生成完成后显示 */}
+          {generatedImage && (
+            <View 
+              className='fullscreen-close' 
+              onClick={(e) => { e.stopPropagation(); closeFullscreen(); }}
+            >
+              <Text>×</Text>
+            </View>
+          )}
+          
+          {/* 生成中的加载状态 */}
+          {isGenerating && !generatedImage && (
+            <View className='fullscreen-loading' onClick={(e) => e.stopPropagation()}>
+              <View className='loading-spinner-large' />
+              <Text className='loading-text-large'>🎨 AI 正在为宝贝创作{getStyleName()}...</Text>
+              <Text className='loading-hint'>请稍候，生成完成后将自动显示</Text>
+            </View>
+          )}
+          
+          {/* 生成完成后显示图片 */}
+          {generatedImage && (
+            <>
+              <View className='fullscreen-content' onClick={(e) => e.stopPropagation()}>
+                <Image
+                  className='fullscreen-image'
+                  src={generatedImage}
+                  mode='aspectFit'
+                  showMenuByLongpress
+                />
+              </View>
+              <View className='fullscreen-actions' onClick={(e) => e.stopPropagation()}>
+                <Button className='save-btn-fullscreen' onClick={() => handleSave(generatedImage)}>
+                  💾 保存图片
+                </Button>
+              </View>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* 历史图片预览 */}
+      {previewHistoryImage && (
+        <View className='fullscreen-overlay' onClick={() => setPreviewHistoryImage(null)}>
+          <View 
+            className='fullscreen-close' 
+            onClick={(e) => { e.stopPropagation(); setPreviewHistoryImage(null); }}
+          >
+            <Text>×</Text>
+          </View>
+          <View className='fullscreen-content' onClick={(e) => e.stopPropagation()}>
             <Image
-              className='generated-image'
-              src={generatedImage}
-              mode='widthFix'
+              className='fullscreen-image'
+              src={previewHistoryImage}
+              mode='aspectFit'
               showMenuByLongpress
             />
           </View>
-          <Button className='save-btn' onClick={handleSave}>
-            💾 {t('saveButton')}
-          </Button>
+          <View className='fullscreen-actions' onClick={(e) => e.stopPropagation()}>
+            <Button className='save-btn-fullscreen' onClick={() => handleSave(previewHistoryImage)}>
+              💾 保存图片
+            </Button>
+          </View>
+        </View>
+      )}
+
+      {/* 登录弹窗 */}
+      {showLoginModal && (
+        <View className='login-modal-overlay' onClick={() => {/* 防止点击背景关闭 */}}>
+          <View className='login-modal' onClick={(e) => e.stopPropagation()}>
+            <View className='login-header'>
+              <Text className='login-title'>📱 欢迎使用</Text>
+              <Text className='login-subtitle'>请输入手机号登录/注册</Text>
+            </View>
+            
+            <View className='login-body'>
+              <View className='login-input-group'>
+                <Text className='login-label'>手机号</Text>
+                <Input
+                  className='login-input'
+                  type='number'
+                  placeholder='请输入手机号'
+                  maxlength={11}
+                  value={phoneNumber}
+                  onInput={(e) => setPhoneNumber(e.detail.value)}
+                  disabled={isRegistering}
+                />
+              </View>
+
+              {/* 微信小程序快捷登录按钮 */}
+              {process.env.TARO_ENV === 'weapp' && (
+                <Button 
+                  className='wechat-phone-btn'
+                  openType='getPhoneNumber'
+                  onGetPhoneNumber={handleGetWeChatPhone}
+                  disabled={isRegistering}
+                >
+                  📱 微信快捷登录
+                </Button>
+              )}
+
+              <Button 
+                className='login-submit-btn'
+                onClick={handlePhoneLogin}
+                disabled={isRegistering || !phoneNumber.trim()}
+                loading={isRegistering}
+              >
+                {isRegistering ? '登录中...' : '登录/注册'}
+              </Button>
+
+              <View className='login-tip'>
+                <Text className='tip-text'>首次登录将自动注册账号</Text>
+              </View>
+            </View>
+          </View>
         </View>
       )}
 
       {/* 底部说明 */}
       <View className='footer'>
         <Text className='footer-text'>
-          {t('footerText')}
+          Powered by Gemini 3 Pro | 专为幼儿园妈妈设计 ❤️
         </Text>
       </View>
     </View>

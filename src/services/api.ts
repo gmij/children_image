@@ -1,10 +1,11 @@
 /**
  * Gemini 3 Pro 图像生成 API 服务
+ * 使用万界方舟 Gemini API 接口
  * 注意：文生图接口不支持流式输出，仅支持非流式
  */
 
 // API 配置
-const API_BASE_URL = '/api/v1beta/models'
+const API_BASE_URL = 'https://maas-openapi.wanjiedata.com/api/v1beta/models'
 const MODEL_NAME = 'gemini-3-pro-image-preview'
 
 // 用户中心 API 配置
@@ -13,6 +14,32 @@ const INVITE_CODE = 'xO9h1BTA'  // 邀请码
 
 // 本地存储 key
 const API_KEY_STORAGE = 'gemini_api_key'
+const PAPER_SIZE_STORAGE = 'paper_size_index'
+const ORIENTATION_STORAGE = 'paper_orientation'
+const IMAGE_STYLE_STORAGE = 'image_style'
+const SIGNATURE_STORAGE = 'user_signature'
+const IMAGE_HISTORY_STORAGE = 'image_history'
+
+// 历史图片最大数量
+const MAX_HISTORY_IMAGES = 3
+
+// 风格名称映射
+export const STYLE_NAMES: Record<string, string> = {
+  handwritten: '手抄报',
+  wireframe: '线框图',
+  blackboard: '黑板报',
+  anime: '动漫',
+  custom: '自定义',
+}
+
+// 风格选项映射
+const STYLE_PROMPTS: Record<string, string> = {
+  handwritten: '手抄报风格，手绘感，彩色边框装饰',
+  wireframe: '线框图风格，简洁线条，黑白为主',
+  blackboard: '黑板报风格，深色背景，粉笔画效果',
+  anime: '动漫风格，日系动画，可爱卡通人物',
+  custom: '', // 自定义风格不使用系统提示词
+}
 
 // Base64 图片前缀模式
 const BASE64_PATTERNS = {
@@ -61,10 +88,230 @@ export function hasApiKey(): boolean {
 }
 
 /**
+ * 获取纸张尺寸索引
+ */
+export function getPaperSizeIndex(): number {
+  if (process.env.TARO_ENV === 'h5') {
+    return parseInt(localStorage.getItem(PAPER_SIZE_STORAGE) || '0', 10)
+  }
+  try {
+    return parseInt(wx.getStorageSync(PAPER_SIZE_STORAGE) || '0', 10)
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * 设置纸张尺寸索引
+ */
+export function setPaperSizeIndex(index: number): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(PAPER_SIZE_STORAGE, String(index))
+  } else {
+    try {
+      wx.setStorageSync(PAPER_SIZE_STORAGE, String(index))
+    } catch (e) {
+      console.error('保存纸张尺寸失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取纸张方向（true = 横向, false = 纵向）
+ */
+export function getPaperOrientation(): boolean {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(ORIENTATION_STORAGE) === 'true'
+  }
+  try {
+    return wx.getStorageSync(ORIENTATION_STORAGE) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 设置纸张方向
+ */
+export function setPaperOrientation(isLandscape: boolean): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(ORIENTATION_STORAGE, String(isLandscape))
+  } else {
+    try {
+      wx.setStorageSync(ORIENTATION_STORAGE, String(isLandscape))
+    } catch (e) {
+      console.error('保存纸张方向失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取图片风格
+ */
+export function getImageStyle(): string {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(IMAGE_STYLE_STORAGE) || 'handwritten'
+  }
+  try {
+    return wx.getStorageSync(IMAGE_STYLE_STORAGE) || 'handwritten'
+  } catch {
+    return 'handwritten'
+  }
+}
+
+/**
+ * 设置图片风格
+ */
+export function setImageStyle(style: string): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_STYLE_STORAGE, style)
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_STYLE_STORAGE, style)
+    } catch (e) {
+      console.error('保存图片风格失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取用户签名
+ */
+export function getSignature(): string {
+  if (process.env.TARO_ENV === 'h5') {
+    return localStorage.getItem(SIGNATURE_STORAGE) || ''
+  }
+  try {
+    return wx.getStorageSync(SIGNATURE_STORAGE) || ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 设置用户签名
+ */
+export function setSignature(signature: string): void {
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(SIGNATURE_STORAGE, signature)
+  } else {
+    try {
+      wx.setStorageSync(SIGNATURE_STORAGE, signature)
+    } catch (e) {
+      console.error('保存用户签名失败:', e)
+    }
+  }
+}
+
+/**
+ * 历史图片类型
+ */
+export interface HistoryImage {
+  id: string
+  url: string
+  createdAt: number
+}
+
+/**
+ * 获取历史图片
+ */
+export function getImageHistory(): HistoryImage[] {
+  if (process.env.TARO_ENV === 'h5') {
+    const data = localStorage.getItem(IMAGE_HISTORY_STORAGE)
+    return data ? JSON.parse(data) : []
+  }
+  try {
+    const data = wx.getStorageSync(IMAGE_HISTORY_STORAGE)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 添加图片到历史记录（最多保存3张）
+ */
+export function addImageToHistory(imageUrl: string): HistoryImage {
+  const history = getImageHistory()
+  const newImage: HistoryImage = {
+    id: `img_${Date.now()}`,
+    url: imageUrl,
+    createdAt: Date.now()
+  }
+  
+  // 添加到开头，保持最新的在前面
+  history.unshift(newImage)
+  
+  // 只保留最近的 MAX_HISTORY_IMAGES 张
+  const trimmedHistory = history.slice(0, MAX_HISTORY_IMAGES)
+  
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_HISTORY_STORAGE, JSON.stringify(trimmedHistory))
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_HISTORY_STORAGE, JSON.stringify(trimmedHistory))
+    } catch (e) {
+      console.error('保存历史图片失败:', e)
+    }
+  }
+  
+  return newImage
+}
+
+/**
+ * 删除历史图片
+ */
+export function deleteImageFromHistory(imageId: string): void {
+  const history = getImageHistory()
+  const filteredHistory = history.filter(img => img.id !== imageId)
+  
+  if (process.env.TARO_ENV === 'h5') {
+    localStorage.setItem(IMAGE_HISTORY_STORAGE, JSON.stringify(filteredHistory))
+  } else {
+    try {
+      wx.setStorageSync(IMAGE_HISTORY_STORAGE, JSON.stringify(filteredHistory))
+    } catch (e) {
+      console.error('删除历史图片失败:', e)
+    }
+  }
+}
+
+/**
+ * 获取用户友好的错误信息
+ */
+function getFriendlyErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return '生成失败，请重试'
+  }
+  
+  // 提供更友好的错误信息
+  if (error.message === 'Failed to fetch') {
+    return '网络请求失败，请检查网络连接或 API Key 是否正确'
+  } else if (error.message.includes('NetworkError')) {
+    return '网络错误，请检查网络连接'
+  } else if (error.message.includes('CORS')) {
+    return '跨域请求被阻止，请联系管理员'
+  }
+  
+  return error.message
+}
+
+/**
  * 生成手抄报提示词增强
  */
 function enhancePrompt(userPrompt: string): string {
-  return `请为幼儿园小朋友生成一张精美的手抄报图片。主题是：${userPrompt}
+  const style = getImageStyle()
+  const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.handwritten
+  const signature = getSignature()
+  
+  // 如果是自定义风格，直接使用用户输入，不添加系统提示词
+  if (style === 'custom') {
+    return userPrompt
+  }
+  
+  let prompt = `请为幼儿园小朋友生成一张精美的图片。主题是：${userPrompt}
+
+风格要求：${stylePrompt}
 
 要求：
 - 画面色彩鲜艳、活泼可爱，适合儿童
@@ -73,6 +320,14 @@ function enhancePrompt(userPrompt: string): string {
 - 图片风格要温馨、童趣
 - 可以包含一些简单的文字区域供孩子填写
 - 整体布局美观、有创意`
+
+  // 如果有签名，添加签名要求
+  if (signature.trim()) {
+    prompt += `
+- 请在图片右下角用艺术字体添加签名：${signature} @Gemini 3`
+  }
+
+  return prompt
 }
 
 /**
@@ -120,12 +375,20 @@ export interface GenerateCallbacks {
 }
 
 /**
+ * 图像生成选项
+ */
+export interface GenerateOptions {
+  aspectRatio?: string  // 如 '2:3', '3:2', '1:1', '16:9', '9:16'
+}
+
+/**
  * 调用 Gemini 3 Pro 生成图像
  * 注意：文生图接口不支持流式输出，使用非流式请求
  */
 export async function generateImage(
   prompt: string,
-  callbacks: GenerateCallbacks
+  callbacks: GenerateCallbacks,
+  options?: GenerateOptions
 ): Promise<void> {
   const apiKey = getApiKey()
   
@@ -137,6 +400,7 @@ export async function generateImage(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -156,8 +420,11 @@ export async function generateImage(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          aspectRatio: '2:3'
+          responseModalities: ['Image'],
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: '1K'
+          }
         }
       })
     })
@@ -196,8 +463,7 @@ export async function generateImage(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '生成失败，请重试'
-    callbacks.onError?.(errorMessage)
+    callbacks.onError?.(getFriendlyErrorMessage(error))
   }
 }
 
@@ -206,7 +472,8 @@ export async function generateImage(
  */
 export async function generateImageNonStream(
   prompt: string,
-  callbacks: GenerateCallbacks
+  callbacks: GenerateCallbacks,
+  options?: GenerateOptions
 ): Promise<void> {
   const apiKey = getApiKey()
   
@@ -218,6 +485,7 @@ export async function generateImageNonStream(
   callbacks.onStart?.()
 
   const enhancedPrompt = enhancePrompt(prompt)
+  const aspectRatio = options?.aspectRatio || '2:3'
 
   try {
     const response = await fetch(`${API_BASE_URL}/${MODEL_NAME}:generateContent`, {
@@ -237,8 +505,11 @@ export async function generateImageNonStream(
           }
         ],
         generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          aspectRatio: '2:3'
+          responseModalities: ['Image'],
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: '1K'
+          }
         }
       })
     })
@@ -277,28 +548,29 @@ export async function generateImageNonStream(
       callbacks.onError?.('未能生成图片，请重试')
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '生成失败，请重试'
-    callbacks.onError?.(errorMessage)
+    callbacks.onError?.(getFriendlyErrorMessage(error))
   }
 }
 
 /**
- * 用户注册/登录 API 响应类型
+ * 用户 API 响应类型
  */
 export interface UserApiResponse {
   success: boolean
-  message: string
-  code: number
-  result: {
+  message?: string
+  code?: number
+  result?: {
     apiKey?: string
+    phone?: string
+    [key: string]: any
   } | null
-  timestamp: number
+  timestamp?: number
 }
 
 /**
- * 注册新用户
+ * 注册用户
  * @param phone 手机号码
- * @returns 用户注册响应
+ * @returns 注册响应
  */
 export async function registerUser(phone: string): Promise<UserApiResponse> {
   try {
@@ -357,21 +629,17 @@ export async function getUserKey(phone: string): Promise<UserApiResponse> {
       }
     )
 
-    // Always try to parse JSON response, even for HTTP errors
-    // The API returns error details in JSON format
     const data = await response.json()
     return data
   } catch (error) {
     console.error('getUserKey error:', error)
     
-    // Check if it's a CORS or network error
     const errorMessage = error instanceof Error ? error.message : '查询失败'
     const isCorsOrNetworkError = errorMessage.includes('fetch') || 
                                   errorMessage.includes('CORS') || 
                                   errorMessage.includes('Network') ||
                                   errorMessage.includes('Failed to fetch')
     
-    // If it's a network error or JSON parse error, return a structured error response
     return {
       success: false,
       message: isCorsOrNetworkError 
